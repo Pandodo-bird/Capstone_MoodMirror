@@ -65,6 +65,13 @@ export default function ProfilePage() {
   const [avoidedFoods, setAvoidedFoods] = useState<Array<{id: string; food: string; avoidedAt: string}>>([]);
   const [avoidedFoodsLoading, setAvoidedFoodsLoading] = useState(false);
   const [removingFood, setRemovingFood] = useState<string | null>(null);
+  const [journalStats, setJournalStats] = useState({
+    currentStreak: 0,
+    longestStreak: 0,
+    totalEntries: 0,
+    journalingSince: null as Date | null,
+  });
+  const [showAvoidedFoodsModal, setShowAvoidedFoodsModal] = useState(false);
   const router = useRouter();
 
   // Watch authentication
@@ -93,32 +100,116 @@ export default function ProfilePage() {
     if (user) {
       const fetchUserData = async () => {
         try {
-          const entriesRef = collection(db, "users", user.uid, "journalEntries");
-          const q = query(entriesRef, orderBy("date", "desc"));
-          const querySnap = await getDocs(q);
-
           const monthSet = new Set<string>();
           const emotionData: {[month: string]: {[emotion: string]: number}} = {};
+          const datesWithEntries = new Set<string>();
+          let totalEntries = 0;
+          let earliestDate: Date | null = null;
 
-          querySnap.forEach((docSnap) => {
-            const data = docSnap.data() as { date: string; mood: string };
-            const date = new Date(data.date);
-            const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-            monthSet.add(monthYear);
+          // Get all dates in the last year (similar to calendar approach but wider range)
+          const now = new Date();
+          const startDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()); // 1 year ago
+          const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // Today
+          
+          const datesToCheck: string[] = [];
+          const currentDate = new Date(startDate);
+          
+          while (currentDate <= endDate) {
+            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")}-${String(currentDate.getDate()).padStart(2, "0")}`;
+            datesToCheck.push(dateStr);
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
 
-            // Count emotions per month
-            if (!emotionData[monthYear]) {
-              emotionData[monthYear] = {};
+          // Load entries for each date (similar to calendar approach)
+          await Promise.all(datesToCheck.map(async (dateStr) => {
+            try {
+              const entriesRef = collection(db, "users", user.uid, "journalEntries", dateStr, "entries");
+              const entriesSnap = await getDocs(entriesRef);
+              
+              if (!entriesSnap.empty) {
+                const date = new Date(dateStr);
+                const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+                monthSet.add(monthYear);
+                datesWithEntries.add(dateStr);
+
+                // Track earliest date
+                if (!earliestDate || date < earliestDate) {
+                  earliestDate = date;
+                }
+
+                // Process each entry for this date
+                entriesSnap.forEach((entryDoc) => {
+                  const entryData = entryDoc.data() as { mood?: string; flagged?: boolean };
+                  
+                  // Skip flagged entries (they shouldn't have moods, but check just in case)
+                  if (entryData.flagged || !entryData.mood) return;
+                  
+                  totalEntries++;
+                  
+                  // Count emotions per month
+                  if (!emotionData[monthYear]) {
+                    emotionData[monthYear] = {};
+                  }
+                  if (!emotionData[monthYear][entryData.mood]) {
+                    emotionData[monthYear][entryData.mood] = 0;
+                  }
+                  emotionData[monthYear][entryData.mood]++;
+                });
+              }
+            } catch (e) {
+              // Date document might not exist, which is fine
+              // Silently skip - this is expected for most dates
             }
-            if (!emotionData[monthYear][data.mood]) {
-              emotionData[monthYear][data.mood] = 0;
+          }));
+
+          // Calculate streaks
+          const sortedDates = Array.from(datesWithEntries).sort().reverse();
+          let currentStreak = 0;
+          let longestStreak = 0;
+          let tempStreak = 0;
+
+          // Calculate current streak (from today backwards)
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          let checkDate = new Date(today);
+          
+          while (true) {
+            const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, "0")}-${String(checkDate.getDate()).padStart(2, "0")}`;
+            if (datesWithEntries.has(dateStr)) {
+              currentStreak++;
+              checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+              break;
             }
-            emotionData[monthYear][data.mood]++;
-          });
+          }
+
+          // Calculate longest streak
+          if (sortedDates.length > 0) {
+            tempStreak = 1;
+            for (let i = 1; i < sortedDates.length; i++) {
+              const prevDate = new Date(sortedDates[i - 1]);
+              const currDate = new Date(sortedDates[i]);
+              const diffDays = Math.floor((prevDate.getTime() - currDate.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (diffDays === 1) {
+                tempStreak++;
+              } else {
+                longestStreak = Math.max(longestStreak, tempStreak);
+                tempStreak = 1;
+              }
+            }
+            longestStreak = Math.max(longestStreak, tempStreak);
+          }
 
           const sortedMonths = Array.from(monthSet).sort().reverse();
           setMonths(sortedMonths);
           setMonthlyEmotions(emotionData);
+          setJournalStats({
+            currentStreak,
+            longestStreak,
+            totalEntries,
+            journalingSince: earliestDate,
+          });
         } catch (error) {
           console.error("Error fetching user data:", error);
         } finally {
@@ -304,12 +395,13 @@ export default function ProfilePage() {
           {/* Profile Header */}
           <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-6">
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="text-3xl">👤</span>
+              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center shadow-lg">
+                <span className="text-4xl font-bold text-white">
+                  {(displayName || user.email || "U").charAt(0).toUpperCase()}
+                </span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">User Profile</h2>
-                <p className="text-indigo-100">{displayName || user.email}</p>
+                <h2 className="text-3xl font-bold text-white">{displayName || user.email}</h2>
               </div>
             </div>
           </div>
@@ -319,66 +411,101 @@ export default function ProfilePage() {
              {/* User Information */}
             <div className="mb-8">
                <h3 className="text-xl font-semibold text-gray-800 mb-4">Account Information</h3>
-              <div className="bg-gray-50 rounded-xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Username</label>
-                  <p className="text-gray-800 font-medium">{displayName || "-"}</p>
+              <div className="bg-gray-50 rounded-xl p-6">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <dt className="text-sm font-medium text-gray-600">Username</dt>
+                    <dd className="mt-1 text-gray-800 font-medium">{displayName || "-"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-gray-600">Email</dt>
+                    <dd className="mt-1 text-gray-800 font-medium">{user.email}</dd>
+                  </div>
+                </dl>
+                
+                {/* Food Preferences */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Food Preferences</p>
+                      <p className="mt-1 text-gray-800">
+                        {avoidedFoodsLoading ? (
+                          <span className="text-gray-500">Loading...</span>
+                        ) : avoidedFoods.length === 0 ? (
+                          <span>You haven't marked any foods to avoid yet.</span>
+                        ) : (
+                          <span>You have {avoidedFoods.length} food{avoidedFoods.length !== 1 ? 's' : ''} in your preferences list.</span>
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowAvoidedFoodsModal(true)}
+                      className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-sm font-medium rounded-lg transition-all duration-200"
+                    >
+                      Manage List
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
-                  <p className="text-gray-800 font-medium">{user.email}</p>
-                </div>
-               </div>
+              </div>
              </div>
 
-           {/* Journal Activity Section */}
-<div className="mb-8 bg-indigo-50 p-6 rounded-xl border border-indigo-200">
-  {/* Section Title */}
-  <h3 className="text-xl font-semibold text-indigo-900 mb-4">Journal Activity</h3>
-
-  {loading ? (
-    // Loading state
-    <div className="text-center py-8">
-      <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-      <p className="text-indigo-600 text-sm mt-3">Loading your journal history...</p>
-    </div>
-  ) : months.length === 0 ? (
-    // No journal entries
-    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center shadow-sm">
-      <div className="text-5xl mb-2">📝</div>
-      <h4 className="text-lg font-semibold text-yellow-800 mb-2">No Journal Entries Yet</h4>
-      <p className="text-yellow-700">Start your mood tracking journey by creating your first journal entry!</p>
-    </div>
-  ) : (
-    // Journal months grid
-    <div className="bg-white rounded-xl p-6 shadow-sm">
-      <div className="mb-4">
-        <p className="text-gray-600 mb-2">
-          You've been journaling for <span className="font-semibold text-indigo-600">{months.length}</span> month{months.length !== 1 ? 's' : ''}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {months.map((monthYear, index) => (
-          <div
-            key={monthYear}
-            className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 hover:bg-indigo-100 hover:shadow-lg transition-all duration-300"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-indigo-900">{formatMonthYear(monthYear)}</p>
-                <p className="text-sm text-indigo-700">Month {months.length - index}</p>
-              </div>
-              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                <span className="text-indigo-600 text-sm font-semibold">{months.length - index}</span>
-              </div>
+           {/* Your Activity / Journal Stats */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Your Activity</h3>
+              {loading ? (
+                <div className="bg-gray-50 rounded-xl p-6 text-center">
+                  <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-indigo-600 text-sm mt-3">Loading your journal stats...</p>
+                </div>
+              ) : (
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="bg-white/80 rounded-lg p-4 border border-indigo-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-600">Current Streak</span>
+                        <span className="text-lg">🔥</span>
+                      </div>
+                      <p className="text-2xl font-bold text-indigo-600">
+                        {journalStats.currentStreak} {journalStats.currentStreak === 1 ? 'Day' : 'Days'}
+                      </p>
+                      {journalStats.currentStreak > 0 && (
+                        <p className="text-xs text-green-600 mt-1 font-medium">Active</p>
+                      )}
+                    </div>
+                    
+                    <div className="bg-white/80 rounded-lg p-4 border border-indigo-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-600">Longest Streak</span>
+                        <span className="text-lg">⭐</span>
+                      </div>
+                      <p className="text-2xl font-bold text-purple-600">
+                        {journalStats.longestStreak} {journalStats.longestStreak === 1 ? 'Day' : 'Days'}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-white/80 rounded-lg p-4 border border-indigo-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-600">Total Entries</span>
+                        <span className="text-lg">📝</span>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-600">{journalStats.totalEntries}</p>
+                    </div>
+                    
+                    <div className="bg-white/80 rounded-lg p-4 border border-indigo-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-600">Journaling Since</span>
+                        <span className="text-lg">📅</span>
+                      </div>
+                      <p className="text-2xl font-bold text-pink-600">
+                        {journalStats.journalingSince
+                          ? journalStats.journalingSince.toLocaleString("default", { month: "long", year: "numeric" })
+                          : "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )}
-</div>
 
 
            {/* Emotion Graph Section */}
@@ -498,83 +625,87 @@ export default function ProfilePage() {
 </div>
 
 
-            {/* Avoided Foods Section */}
-            <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Avoided Foods 🚫</h3>
-              {avoidedFoodsLoading ? (
-                <div className="text-center py-8">
-                  <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <p className="text-indigo-600 text-sm mt-2">Loading avoided foods...</p>
-                </div>
-              ) : avoidedFoods.length === 0 ? (
-                <div className="bg-gray-50 rounded-xl p-6 text-center">
-                  <div className="text-4xl mb-2">🍽️</div>
-                  <h4 className="text-lg font-semibold text-gray-700 mb-2">No Avoided Foods</h4>
-                  <p className="text-gray-600">You haven't avoided any foods yet. When you avoid a food suggestion in the calendar, it will appear here.</p>
-                </div>
-              ) : (
-                <div className="bg-white border border-gray-200 rounded-xl p-6">
-                  <div className="mb-4">
-                    <p className="text-gray-600 mb-2">
-                      You have avoided <span className="font-semibold text-red-600">{avoidedFoods.length}</span> food{avoidedFoods.length !== 1 ? 's' : ''}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      These foods won't appear in your future food suggestions. Click "Undo" to allow them again.
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    {avoidedFoods.map((food) => (
-                      <div key={food.id} className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                            <span className="text-red-600 text-sm">🚫</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-red-800">{food.food}</p>
-                            <p className="text-xs text-red-600">
-                              Avoided on {new Date(food.avoidedAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveAvoidedFood(food.id, food.food)}
-                          disabled={removingFood === food.id}
-                          className="px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                          {removingFood === food.id ? (
-                            <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <>
-                              <span>↩️</span>
-                              <span>Undo</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Quick Stats - Updated */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 text-center">
-                <div className="text-3xl mb-2">📅</div>
-                <h4 className="font-semibold text-blue-800 mb-1">Months Active</h4>
-                <p className="text-2xl font-bold text-blue-600">{months.length}</p>
-              </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 text-center">
-                <div className="text-3xl mb-2">🎯</div>
-                <h4 className="font-semibold text-green-800 mb-1">Consistency</h4>
-                <p className="text-2xl font-bold text-green-600">
-                  {months.length > 0 ? "Active" : "Getting Started"}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
+
+      {/* Avoided Foods Modal */}
+      {showAvoidedFoodsModal && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowAvoidedFoodsModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-white">Food Preferences</h3>
+              <button
+                onClick={() => setShowAvoidedFoodsModal(false)}
+                className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              {avoidedFoodsLoading ? (
+                <div className="text-center py-8">
+                  <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-indigo-600 text-sm mt-2">Loading...</p>
+                </div>
+              ) : avoidedFoods.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">You haven't marked any foods to avoid yet.</p>
+                  <p className="text-sm text-gray-500 mt-2">When you avoid a food suggestion in the calendar, it will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {avoidedFoods.map((food) => (
+                    <div key={food.id} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                          <span className="text-indigo-600 text-sm">🍽️</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">{food.food}</p>
+                          <p className="text-xs text-gray-500">
+                            Added on {new Date(food.avoidedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveAvoidedFood(food.id, food.food)}
+                        disabled={removingFood === food.id}
+                        className="px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      >
+                        {removingFood === food.id ? (
+                          <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <>
+                            <span>↩️</span>
+                            <span>Remove</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setShowAvoidedFoodsModal(false)}
+                className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
