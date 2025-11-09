@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "../../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -227,7 +227,7 @@ interface JournalEntry {
 }
 
 export default function JournalPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ uid: string; email: string | null; displayName: string | null } | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [showClearConfirm, setShowClearConfirm] = useState<{ entryId: number } | null>(null);
@@ -277,7 +277,7 @@ export default function JournalPage() {
         entry.textareaRef.current.style.height = `${Math.max(120, entry.textareaRef.current.scrollHeight)}px`;
       }
     });
-  }, [entries.map(e => e.text).join(',')]);
+  }, [entries]);
 
   // Watch authentication
   useEffect(() => {
@@ -291,9 +291,10 @@ export default function JournalPage() {
           try {
             const userDocRef = doc(db, "users", u.uid);
             const userDoc = await getDoc(userDocRef);
-            const firestoreUsername = userDoc.exists() ? (userDoc.data() as any).username : null;
+            const userData = userDoc.exists() ? userDoc.data() : null;
+            const firestoreUsername = userData?.username as string | undefined;
             setDisplayName(firestoreUsername || u.displayName || u.email || "");
-          } catch (e) {
+          } catch {
             setDisplayName(u.displayName || u.email || "");
           }
         })();
@@ -459,6 +460,11 @@ export default function JournalPage() {
   };
 
   const handleSaveEntry = async (entryId: number) => {
+    if (!user) {
+      updateEntry(entryId, { entryError: "User not authenticated." });
+      return;
+    }
+    
     const entry = entries.find(e => e.id === entryId);
     if (!entry || !entry.text.trim()) {
       updateEntry(entryId, { entryError: "Please write something in your journal entry." });
@@ -564,9 +570,10 @@ export default function JournalPage() {
           reflectionLoading: false,
         });
       }
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to save entry";
       updateEntry(entryId, {
-        entryError: err.message || "Failed to save entry",
+        entryError: errorMessage,
         entryLoading: false,
         reflectionLoading: false,
       });
@@ -590,7 +597,7 @@ export default function JournalPage() {
       // Also delete the AI details subdocument if it exists
       try {
         await deleteDoc(doc(db, "users", user.uid, "journalEntries", todayStr, "entries", entryId.toString(), "details", "ai"));
-      } catch (subErr) {
+      } catch {
         // Best-effort; ignore if missing
       }
 
@@ -615,8 +622,9 @@ export default function JournalPage() {
       setExpandedEntryId(entryId);
 
       setShowClearConfirm(null);
-    } catch (err: any) {
-      updateEntry(entryId, { entryError: err.message || "Failed to clear entry" });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to clear entry";
+      updateEntry(entryId, { entryError: errorMessage });
     } finally {
       setClearLoading(false);
     }
@@ -647,8 +655,9 @@ export default function JournalPage() {
           entrySuccess: `"${foodToAvoid}" added to your avoided foods list!`,
         });
       }
-    } catch (err: any) {
-      updateEntry(entryId, { entryError: err.message || "Failed to avoid food" });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to avoid food";
+      updateEntry(entryId, { entryError: errorMessage });
     } finally {
       setAvoidingFood(null);
     }
@@ -764,7 +773,6 @@ export default function JournalPage() {
             {entries.map((entry, entryIndex) => {
               const isExpanded = expandedEntryId === entry.id;
               const isSaved = savedEntryIds.has(entry.id);
-              const hasContent = entry.text.trim() || entry.detectedMood || entry.polishedReflection;
               
               // Auto-expand empty/new entries
               const isEmpty = !entry.text.trim() && !entry.detectedMood && !entry.polishedReflection;
@@ -856,7 +864,7 @@ export default function JournalPage() {
                             Content Flagged
                           </h3>
                           <p className="text-red-700 font-medium mb-1">
-                            Your entry contains flagged content: <span className="font-bold bg-red-100 px-2 py-1 rounded">"{entry.flaggedWord}"</span>
+                            Your entry contains flagged content: <span className="font-bold bg-red-100 px-2 py-1 rounded">&quot;{entry.flaggedWord}&quot;</span>
                           </p>
                           <p className="text-red-600 text-sm mt-2">
                             Please revise your entry to remove inappropriate content. The entry was not saved to your journal.
@@ -869,7 +877,7 @@ export default function JournalPage() {
                   {/* User's Text Input - First Section */}
                   <div className="mb-6">
                     <label className="block mb-2 font-semibold text-gray-700">
-                      What's on your mind? 👇
+                      What&apos;s on your mind? 👇
                     </label>
                     <textarea
                       ref={entry.textareaRef}
@@ -878,7 +886,7 @@ export default function JournalPage() {
                         height: 'auto',
                         minHeight: '120px',
                       }}
-                      placeholder="Write your thoughts, feelings, or anything you'd like to remember..."
+                      placeholder="Write your thoughts, feelings, or anything you&apos;d like to remember..."
                       value={entry.text}
                       onChange={(e) => {
                         updateEntry(entry.id, { text: e.target.value });

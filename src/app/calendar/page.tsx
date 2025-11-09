@@ -8,8 +8,6 @@ import {
   getFirestore,
   doc,
   collection,
-  query,
-  where,
   getDocs,
   getDoc,
 } from "firebase/firestore";
@@ -72,7 +70,7 @@ function getDaysInMonth(year: number, month: number) {
 }
 
 export default function CalendarPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ uid: string; email: string | null; displayName: string | null } | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -97,9 +95,10 @@ export default function CalendarPage() {
           try {
             const userDocRef = doc(db, "users", u.uid);
             const userDoc = await getDoc(userDocRef);
-            const firestoreUsername = userDoc.exists() ? (userDoc.data() as any).username : null;
+            const userData = userDoc.exists() ? userDoc.data() : null;
+            const firestoreUsername = userData?.username as string | undefined;
             setDisplayName(firestoreUsername || u.displayName || u.email || "");
-          } catch (e) {
+          } catch {
             setDisplayName(u.displayName || u.email || "");
           }
         })();
@@ -240,7 +239,7 @@ export default function CalendarPage() {
                   emotionData[monthYear][entryData.mood]++;
                 });
               }
-            } catch (e) {
+            } catch {
               // Silently skip
             }
           }));
@@ -805,7 +804,7 @@ export default function CalendarPage() {
                                 <span className="text-2xl">⚠️</span>
                                 <div className="flex-1">
                                   <p className="text-red-700 font-medium text-sm">
-                                    Flagged content: <span className="font-bold">"{entry.flaggedWord}"</span>
+                                    Flagged content: <span className="font-bold">&quot;{entry.flaggedWord}&quot;</span>
                                   </p>
                                 </div>
                               </div>

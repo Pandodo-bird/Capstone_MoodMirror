@@ -68,8 +68,9 @@ export default function Register() {
       setPassword("");
       setConfirmPassword("");
       setUsername("");
-    } catch (err: any) {
-      setError(err.message || "Registration failed");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Registration failed";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -86,8 +87,9 @@ export default function Register() {
     try {
       await sendEmailVerification(auth.currentUser);
       setSuccess("Verification email sent again!");
-    } catch (err: any) {
-      setError(err.message || "Failed to resend verification email");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to resend verification email";
+      setError(errorMessage);
     } finally {
       setResendLoading(false);
     }
@@ -349,7 +351,7 @@ export default function Register() {
                           </div>
                           <h3 className="text-xl font-semibold text-gray-800 mb-2">Check your email!</h3>
                           <p className="text-gray-600 mb-4">
-                            We've sent a verification link to your email address. Please check your inbox (and spam folder) and click the link to complete your registration.
+                            We&apos;ve sent a verification link to your email address. Please check your inbox (and spam folder) and click the link to complete your registration.
                           </p>
                           
                           {error && (
@@ -377,7 +379,7 @@ export default function Register() {
                           
                           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                             <p className="text-blue-800 text-sm">
-                              <strong>Can't find the email?</strong> Check your spam folder or try resending the verification email.
+                              <strong>Can&apos;t find the email?</strong> Check your spam folder or try resending the verification email.
                             </p>
                           </div>
                         </div>

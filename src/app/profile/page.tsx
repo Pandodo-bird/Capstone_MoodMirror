@@ -7,9 +7,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
   getFirestore,
   collection,
-  query,
   getDocs,
-  orderBy,
   deleteDoc,
   doc,
   getDoc,
@@ -17,47 +15,8 @@ import {
 
 const db = getFirestore();
 
-const moodConfig = {
-  "Sad/Down": {
-    color: "bg-blue-500",
-    textColor: "text-blue-800",
-    icon: "😢",
-    shortName: "Sad"
-  },
-  "Stressed/Overwhelmed": {
-    color: "bg-red-500",
-    textColor: "text-red-800",
-    icon: "😰",
-    shortName: "Stressed"
-  },
-  "Anxious/Nervous": {
-    color: "bg-orange-500",
-    textColor: "text-orange-800",
-    icon: "😟",
-    shortName: "Anxious"
-  },
-  "Tired/Drained": {
-    color: "bg-gray-500",
-    textColor: "text-gray-800",
-    icon: "😴",
-    shortName: "Tired"
-  },
-  "Happy / Excited / In Love": {
-    color: "bg-yellow-500",
-    textColor: "text-yellow-800",
-    icon: "😊",
-    shortName: "Happy"
-  },
-  "Grateful / Content / Peaceful": {
-    color: "bg-green-500",
-    textColor: "text-green-800",
-    icon: "😌",
-    shortName: "Grateful"
-  },
-};
-
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ uid: string; email: string | null; displayName: string | null } | null>(null);
   const [displayName, setDisplayName] = useState<string>("");
   const [months, setMonths] = useState<string[]>([]);
   const [monthlyEmotions, setMonthlyEmotions] = useState<{[month: string]: {[emotion: string]: number}}>({});
@@ -84,9 +43,10 @@ export default function ProfilePage() {
         (async () => {
           try {
             const userDoc = await getDoc(doc(db, "users", u.uid));
-            const firestoreUsername = userDoc.exists() ? (userDoc.data() as any).username : null;
+            const userData = userDoc.exists() ? userDoc.data() : null;
+            const firestoreUsername = userData?.username as string | undefined;
             setDisplayName(firestoreUsername || u.displayName || u.email || "");
-          } catch (e) {
+          } catch {
             setDisplayName(u.displayName || u.email || "");
           }
         })();
@@ -156,7 +116,7 @@ export default function ProfilePage() {
                   emotionData[monthYear][entryData.mood]++;
                 });
               }
-            } catch (e) {
+            } catch {
               // Date document might not exist, which is fine
               // Silently skip - this is expected for most dates
             }
@@ -171,7 +131,7 @@ export default function ProfilePage() {
           // Calculate current streak (from today backwards)
           const today = new Date();
           today.setHours(0, 0, 0, 0);
-          let checkDate = new Date(today);
+          const checkDate = new Date(today);
           
           while (true) {
             const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, "0")}-${String(checkDate.getDate()).padStart(2, "0")}`;
@@ -280,29 +240,6 @@ export default function ProfilePage() {
     } finally {
       setRemovingFood(null);
     }
-  };
-
-  const formatMonthYear = (monthYear: string) => {
-    const [year, month] = monthYear.split("-");
-    const date = new Date(parseInt(year), parseInt(month) - 1);
-    return date.toLocaleString("default", { month: "long", year: "numeric" });
-  };
-
-  const getMostFrequentEmotion = (monthYear: string) => {
-    const emotions = monthlyEmotions[monthYear];
-    if (!emotions) return null;
-    
-    let maxCount = 0;
-    let mostFrequent = "";
-    
-    Object.entries(emotions).forEach(([emotion, count]) => {
-      if (count > maxCount) {
-        maxCount = count;
-        mostFrequent = emotion;
-      }
-    });
-    
-    return { emotion: mostFrequent, count: maxCount };
   };
 
   const getTotalEntriesForMonth = (monthYear: string) => {

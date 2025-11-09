@@ -57,8 +57,9 @@ export default function Home() {
       
       // If verified, proceed to calendar
       router.push("/calendar");
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Login failed";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -91,8 +92,9 @@ export default function Home() {
       
       // Sign out after sending verification
       await auth.signOut();
-    } catch (err: any) {
-      setError(err.message || "Failed to resend verification email");
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to resend verification email";
+      setError(errorMessage);
     } finally {
       setResendLoading(false);
     }
@@ -112,13 +114,14 @@ export default function Home() {
       await sendPasswordResetEmail(auth, resetEmail.trim());
       setResetSuccess(true);
       setSuccess("Password reset email sent! Please check your inbox and spam folder.");
-    } catch (err: any) {
-      if (err.code === 'auth/user-not-found') {
+    } catch (err) {
+      const error = err as { code?: string; message?: string };
+      if (error.code === 'auth/user-not-found') {
         setError("No account found with this email address.");
-      } else if (err.code === 'auth/invalid-email') {
+      } else if (error.code === 'auth/invalid-email') {
         setError("Please enter a valid email address.");
       } else {
-        setError(err.message || "Failed to send password reset email.");
+        setError(error.message || "Failed to send password reset email.");
       }
     } finally {
       setResetLoading(false);
@@ -421,8 +424,8 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="mt-6 text-center text-xs text-gray-500">
-                  By continuing you agree to MoodMirror’s guidelines for reflective, supportive journaling.
+                  <div className="mt-6 text-center text-xs text-gray-500">
+                  By continuing you agree to MoodMirror&apos;s guidelines for reflective, supportive journaling.
                 </div>
               </div>
             </div>
@@ -553,7 +556,7 @@ export default function Home() {
                   </div>
                   <h4 className="text-lg font-semibold text-gray-800 mb-2">Email Sent!</h4>
                   <p className="text-gray-600 text-sm mb-4">
-                    We've sent a password reset link to <strong>{resetEmail}</strong>. Please check your inbox and spam folder.
+                    We&apos;ve sent a password reset link to <strong>{resetEmail}</strong>. Please check your inbox and spam folder.
                   </p>
                   
                   {success && (
