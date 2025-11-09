@@ -369,7 +369,7 @@ export default function ProfilePage() {
                         {avoidedFoodsLoading ? (
                           <span className="text-gray-500">Loading...</span>
                         ) : avoidedFoods.length === 0 ? (
-                          <span>You haven't marked any foods to avoid yet.</span>
+                          <span>You haven&apos;t marked any foods to avoid yet.</span>
                         ) : (
                           <span>You have {avoidedFoods.length} food{avoidedFoods.length !== 1 ? 's' : ''} in your preferences list.</span>
                         )}
@@ -594,7 +594,7 @@ export default function ProfilePage() {
                 </div>
               ) : avoidedFoods.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">You haven't marked any foods to avoid yet.</p>
+                  <p className="text-gray-600">You haven&apos;t marked any foods to avoid yet.</p>
                   <p className="text-sm text-gray-500 mt-2">When you avoid a food suggestion in the calendar, it will appear here.</p>
                 </div>
               ) : (

@@ -267,7 +267,7 @@ export default function JournalPage() {
       setEntries([newEntry]);
       setExpandedEntryId(0); // Expand the first empty entry
     }
-  }, [user]);
+  }, [user, entries.length]);
 
   // Auto-resize textareas when entries are loaded or text changes
   useEffect(() => {
@@ -914,7 +914,7 @@ export default function JournalPage() {
                     <div className="mb-6">
                       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <span>✨</span>
-                        <span>MoodMirror's Feedback</span>
+                        <span>MoodMirror&apos;s Feedback</span>
                       </h3>
 
                       {/* Detected Emotion */}
