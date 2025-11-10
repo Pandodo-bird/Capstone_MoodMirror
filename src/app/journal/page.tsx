@@ -453,12 +453,6 @@ export default function JournalPage() {
     setExpandedEntryId(newId); // Expand the new entry
   };
 
-  // Remove an entry
-  const handleRemoveEntry = (entryId: number) => {
-    if (entries.length <= 1) return; // Keep at least one entry
-    setEntries(prev => prev.filter(entry => entry.id !== entryId));
-  };
-
   const handleSaveEntry = async (entryId: number) => {
     if (!user) {
       updateEntry(entryId, { entryError: "User not authenticated." });
