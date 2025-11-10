@@ -733,6 +733,192 @@ export default function CalendarPage() {
                 })()}
               </div>
             </div>
+
+            {/* Quick Stats & Insights Card */}
+            <div className="mt-6 bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
+              {/* Section Header */}
+              <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-4 py-3 rounded-t-3xl">
+                <h3 className="text-lg font-bold text-white">Quick Stats & Insights</h3>
+                <p className="text-purple-100 text-xs">Your mood journey at a glance</p>
+              </div>
+
+              {/* Stats Content */}
+              <div className="p-4">
+                {(() => {
+                  // Calculate this week's dates
+                  const today = new Date();
+                  const currentDay = today.getDay();
+                  const startOfWeek = new Date(today);
+                  startOfWeek.setDate(today.getDate() - currentDay);
+                  const weekDates: string[] = [];
+                  for (let i = 0; i < 7; i++) {
+                    const date = new Date(startOfWeek);
+                    date.setDate(startOfWeek.getDate() + i);
+                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+                    weekDates.push(dateStr);
+                  }
+
+                  // Get this week's entries
+                  const thisWeekEntries = weekDates.flatMap(dateStr => entries?.[dateStr] || []);
+                  
+                  // Calculate stats
+                  const allDateEntries = Object.values(entries || {});
+                  
+                  // This month's entries (entries object already contains only current month)
+                  const thisMonthEntriesCount = allDateEntries.reduce((sum, dateEntries) => sum + dateEntries.length, 0);
+                  
+                  // Count moods from all entries (for most common mood and balance)
+                  const allMoodCounts: { [k: string]: number } = {};
+                  allDateEntries.forEach((dateEntries) => {
+                    dateEntries.forEach((e) => {
+                      if (e.mood && !e.flaggedWord) {
+                        allMoodCounts[e.mood] = (allMoodCounts[e.mood] || 0) + 1;
+                      }
+                    });
+                  });
+
+                  // This week's mood counts
+                  const weekMoodCounts: { [k: string]: number } = {};
+                  thisWeekEntries.forEach((e) => {
+                    if (e.mood && !e.flaggedWord) {
+                      weekMoodCounts[e.mood] = (weekMoodCounts[e.mood] || 0) + 1;
+                    }
+                  });
+
+                  // Find most common mood
+                  const mostCommonMood = Object.entries(allMoodCounts).sort((a, b) => b[1] - a[1])[0];
+                  const mostCommonMoodInfo = mostCommonMood ? moodConfig[mostCommonMood[0] as keyof typeof moodConfig] : null;
+
+                  // Calculate positive vs negative mood ratio
+                  const positiveMoods = ["Happy / Excited / In Love", "Grateful / Content / Peaceful"];
+                  const negativeMoods = ["Sad/Down", "Stressed/Overwhelmed", "Anxious/Nervous", "Tired/Drained"];
+                  
+                  let positiveCount = 0;
+                  let negativeCount = 0;
+                  Object.entries(allMoodCounts).forEach(([mood, count]) => {
+                    if (positiveMoods.includes(mood)) {
+                      positiveCount += count;
+                    } else if (negativeMoods.includes(mood)) {
+                      negativeCount += count;
+                    }
+                  });
+
+                  const totalMoodEntries = positiveCount + negativeCount;
+                  const positivePercentage = totalMoodEntries > 0 ? Math.round((positiveCount / totalMoodEntries) * 100) : 0;
+                  const negativePercentage = totalMoodEntries > 0 ? Math.round((negativeCount / totalMoodEntries) * 100) : 0;
+
+                  return (
+                    <div className="space-y-2.5">
+                      {/* This Month's Entries */}
+                      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-2.5 border border-indigo-200 shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] font-medium text-gray-600 mb-0.5">This Month</p>
+                            <p className="text-lg font-bold text-indigo-900">{thisMonthEntriesCount}</p>
+                            <p className="text-[10px] text-gray-500">entries</p>
+                          </div>
+                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <span className="text-base">📊</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Most Common Mood */}
+                      {mostCommonMood && mostCommonMoodInfo && (
+                        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg p-2.5 border border-yellow-200 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-[10px] font-medium text-gray-600 mb-0.5">Most Common</p>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-base">{mostCommonMoodInfo.icon}</span>
+                                <span className={`font-bold text-sm ${mostCommonMoodInfo.textColor}`}>
+                                  {mostCommonMoodInfo.shortName}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-gray-500 mt-0.5">{mostCommonMood[1]}x</p>
+                            </div>
+                            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                              <span className="text-base">⭐</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* This Week Summary */}
+                      {thisWeekEntries.length > 0 && (
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-2.5 border border-green-200 shadow-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <p className="text-[10px] font-medium text-gray-600 mb-0.5">This Week</p>
+                              <p className="text-sm font-bold text-green-900">{thisWeekEntries.length} entries</p>
+                            </div>
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                              <span className="text-base">📅</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {Object.entries(weekMoodCounts).slice(0, 3).map(([mood, count]) => {
+                              const moodInfo = moodConfig[mood as keyof typeof moodConfig];
+                              if (!moodInfo) return null;
+                              return (
+                                <div key={mood} className={`inline-flex items-center px-1.5 py-0.5 rounded-md ${moodInfo.bgColor} ${moodInfo.borderColor} border`}>
+                                  <span className="text-xs mr-0.5">{moodInfo.icon}</span>
+                                  <span className={`text-[10px] font-semibold ${moodInfo.textColor}`}>
+                                    {moodInfo.shortName} ({count})
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mood Balance */}
+                      {totalMoodEntries > 0 && (
+                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-2.5 border border-blue-200 shadow-sm">
+                          <p className="text-[10px] font-medium text-gray-600 mb-2">Mood Balance</p>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-green-700 font-medium">😊 Positive</span>
+                              <span className="text-green-700 font-bold">{positivePercentage}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                              <div 
+                                className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${positivePercentage}%` }}
+                              />
+                            </div>
+                            <div className="flex items-center justify-between text-[10px]">
+                              <span className="text-red-700 font-medium">😔 Challenging</span>
+                              <span className="text-red-700 font-bold">{negativePercentage}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                              <div 
+                                className="bg-gradient-to-r from-red-400 to-orange-500 h-2 rounded-full transition-all duration-500"
+                                style={{ width: `${negativePercentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Empty State */}
+                      {thisMonthEntriesCount === 0 && (
+                        <div className="text-center py-4">
+                          <p className="text-gray-500 text-xs mb-1.5">No entries this month</p>
+                          <button
+                            onClick={() => router.push("/journal")}
+                            className="text-indigo-600 hover:text-indigo-700 text-xs font-medium underline"
+                          >
+                            Start your first entry →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
         </div>
       </div>

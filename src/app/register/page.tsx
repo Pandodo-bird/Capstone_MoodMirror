@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { auth } from "../../firebase";
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification } from "firebase/auth";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
@@ -127,20 +127,18 @@ export default function Register() {
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between relative">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shadow-inner">
-              <span className="text-xl">📅</span>
+              <span className="text-xl">📝</span>
             </div>
             <h1 className="text-2xl font-extrabold tracking-wide bg-gradient-to-r from-white via-indigo-100 to-pink-100 bg-clip-text text-transparent drop-shadow-sm">
               MoodMirror
             </h1>
           </div>
-          <div className="hidden sm:flex items-center gap-2">
-            <span className="hidden md:block text-indigo-100 text-sm mr-1">Reflect. Understand. Nourish.</span>
-            <div className="bg-white/15 backdrop-blur px-3 py-1.5 rounded-full border border-white/20 text-xs flex items-center gap-2">
-              <span className="text-white/90">🤖 AI</span>
-              <span className="text-white/90">🥗 Nutrition</span>
-              <span className="text-white/90">🔗 Mood–Diet</span>
-            </div>
-          </div>
+          <button
+            onClick={() => (window.location.href = "/")}
+            className="text-white/90 hover:text-white text-sm font-medium transition-colors"
+          >
+            ← Back to Home
+          </button>
         </div>
         <div className="absolute -bottom-[1px] left-0 right-0" aria-hidden>
           <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-12 fill-white/70">
@@ -149,199 +147,129 @@ export default function Register() {
         </div>
       </div>
 
-      {/* Hero + Auth */}
-      <div className="flex-1 w-full relative">
+      {/* Register Form */}
+      <div className="flex-1 w-full relative flex items-center justify-center py-12">
         {/* Ambient gradient blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute right-[-120px] top-10 w-80 h-80 bg-gradient-to-br from-pink-300/40 to-indigo-300/40 rounded-full blur-3xl animate-pulse" />
           <div className="absolute left-[-120px] bottom-10 w-80 h-80 bg-gradient-to-br from-purple-300/40 to-yellow-300/40 rounded-full blur-3xl animate-pulse" />
         </div>
-        <div className="relative max-w-6xl mx-auto px-6 py-10">
-          <div className={`transform transition-all duration-700 ease-out ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
-            <div className="p-[1.5px] rounded-[28px] bg-gradient-to-br from-indigo-300 via-purple-300 to-pink-300">
-              <div className="bg-white/85 backdrop-blur-xl rounded-[26px] shadow-2xl border border-white/60 overflow-hidden">
-                {/* Banner */}
-                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-8">
-                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-                    <div>
-                      <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Create your account</h2>
-                      <p className="text-indigo-100 mt-2">Join MoodMirror and start reflective journaling today.</p>
+        <div className={`relative max-w-md w-full mx-auto px-6 transform transition-all duration-700 ease-out ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"}`}>
+          <div className="p-[1.5px] rounded-[28px] bg-gradient-to-br from-indigo-300 via-purple-300 to-pink-300">
+            <div className="bg-white/85 backdrop-blur-xl rounded-[26px] shadow-2xl border border-white/60 overflow-hidden">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-6 text-center">
+                <h2 className="text-3xl font-extrabold text-white tracking-tight mb-2">Create Account</h2>
+                <p className="text-indigo-100 text-sm">Join MoodMirror and start your journey</p>
+              </div>
+              {/* Form */}
+              <div className="p-8">
+                {!verificationSent ? (
+                  <>
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                              <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12zm0 1.5c-3.038 0-9 1.522-9 4.5V21h18v-3c0-2.978-5.962-4.5-9-4.5z" />
+                            </svg>
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="your_username"
+                            value={username}
+                            onChange={e => setUsername(e.target.value)}
+                            className="pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 text-gray-900"
+                            aria-label="Username"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                              <path d="M1.5 8.67v6.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-9.3 5.27a3 3 0 01-3 0L1.5 8.67z" />
+                              <path d="M22.5 6.75v-.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.75l9.3 5.27a3 3 0 003 0l8.7-4.98z" />
+                            </svg>
+                          </span>
+                          <input
+                            type="email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            className="pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 text-gray-900"
+                            aria-label="Email"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                              <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25V9H6A2.25 2.25 0 003.75 11.25v7.5A2.25 2.25 0 006 21h12a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0018 9h-.75V6.75A5.25 5.25 0 0012 1.5zm-3.75 7.5V6.75a3.75 3.75 0 117.5 0V9H8.25z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                          <input
+                            type="password"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            className="pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 text-gray-900"
+                            aria-label="Password"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                        <div className="relative">
+                          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                              <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25V9H6A2.25 2.25 0 003.75 11.25v7.5A2.25 2.25 0 006 21h12a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0018 9h-.75V6.75A5.25 5.25 0 0012 1.5zm-3.75 7.5V6.75a3.75 3.75 0 117.5 0V9H8.25z" clipRule="evenodd" />
+                            </svg>
+                          </span>
+                          <input
+                            type="password"
+                            placeholder="••••••••"
+                            value={confirmPassword}
+                            onChange={e => setConfirmPassword(e.target.value)}
+                            className="pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 text-gray-900"
+                            aria-label="Confirm Password"
+                          />
+                        </div>
+                      </div>
+
+                      {error && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">⚠️ {error}</div>
+                      )}
+                      {success && (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">✅ {success}</div>
+                      )}
+
+                      <button
+                        className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-[0_12px_24px_-12px_rgba(79,70,229,0.6)] active:scale-[0.99]"
+                        onClick={handleRegister}
+                        disabled={loading}
+                      >
+                        {loading ? "Registering..." : "Create account"}
+                      </button>
+                      <button
+                        className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-medium transition-all duration-200 hover:shadow-sm active:scale-[0.99]"
+                        onClick={() => (window.location.href = "/login")}
+                      >
+                        Back to login
+                      </button>
                     </div>
-                    <div className="inline-flex items-center gap-2 bg-white/15 border border-white/20 rounded-full px-3 py-1.5">
-                      <span className="text-white/90 text-sm">🤖 AI</span>
-                      <span className="text-white/90 text-sm">🥗 Nutrition</span>
-                      <span className="text-white/90 text-sm">🔗 Mood–Diet</span>
+                    <div className="mt-6 text-center text-xs text-gray-500">
+                      By creating an account you agree to reflective, supportive journaling guidelines.
                     </div>
-                  </div>
-                </div>
-                {/* Inner grid: features + form */}
-                <div className="p-8 md:p-10 grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                  {/* Features */}
-                  <div className="lg:col-span-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="h-full text-center rounded-2xl border border-gray-200 bg-white/70 backdrop-blur p-5 shadow-sm hover:shadow-md transition-all">
-                        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 text-indigo-700 flex items-center justify-center">
-                          <span className="text-xl">🤖</span>
-                        </div>
-                        <p className="font-semibold text-gray-800">AI for Emotion Analysis</p>
-                        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400" />
-                        <p className="text-gray-600 text-sm mt-3 leading-relaxed">
-                          Capture your day and let AI reflect your feelings with supportive insights.
-                        </p>
-                      </div>
-                      <div className="h-full text-center rounded-2xl border border-gray-200 bg-white/70 backdrop-blur p-5 shadow-sm hover:shadow-md transition-all">
-                        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-green-100 to-green-200 text-green-700 flex items-center justify-center">
-                          <span className="text-xl">🥗</span>
-                        </div>
-                        <p className="font-semibold text-gray-800">Personalized Nutrition</p>
-                        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400" />
-                        <p className="text-gray-600 text-sm mt-3 leading-relaxed">
-                          Get food suggestions tailored to your mood to help you feel your best.
-                        </p>
-                      </div>
-                      <div className="h-full text-center rounded-2xl border border-gray-200 bg-white/70 backdrop-blur p-5 shadow-sm hover:shadow-md transition-all">
-                        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-yellow-100 to-yellow-200 text-yellow-700 flex items-center justify-center">
-                          <span className="text-xl">🔗</span>
-                        </div>
-                        <p className="font-semibold text-gray-800">Mood–Diet Link</p>
-                        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400" />
-                        <p className="text-gray-600 text-sm mt-3 leading-relaxed">
-                          Discover how nutrition and emotions connect across your daily entries.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-6">
-                      <div className="relative h-16 rounded-2xl overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-100/70 via-purple-100/70 to-pink-100/70" />
-                        <div
-                          className="absolute inset-0"
-                          style={{
-                            backgroundImage:
-                              "radial-gradient(#a5b4fc 1px, transparent 1px), radial-gradient(#fbcfe8 1px, transparent 1px)",
-                            backgroundSize: "16px 16px, 24px 24px",
-                            backgroundPosition: "0 0, 8px 8px",
-                          }}
-                        />
-                        <div className="absolute inset-0 opacity-60">
-                          <div className="absolute -left-10 -top-6 w-28 h-28 bg-white/60 rounded-full blur-2xl" />
-                          <div className="absolute -right-10 -bottom-6 w-28 h-28 bg-white/50 rounded-full blur-2xl" />
-                        </div>
-                        <div className="relative h-full flex items-center justify-center">
-                          <span className="text-[10px] tracking-wider text-gray-600 uppercase">Reflect • Understand • Nourish</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Form */}
-                  <div className="lg:col-span-2">
-                    <div className="rounded-2xl border border-gray-200 bg-white/70 backdrop-blur p-6 shadow-sm">
-                      {!verificationSent ? (
-                        <>
-                          <h3 className="text-lg font-semibold text-gray-800 mb-4">Create your account</h3>
-                          <div className="space-y-5">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                          <div className="relative">
-                            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                                <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12zm0 1.5c-3.038 0-9 1.522-9 4.5V21h18v-3c0-2.978-5.962-4.5-9-4.5z" />
-                              </svg>
-                            </span>
-                            <input
-                              type="text"
-                              placeholder="your_username"
-                              value={username}
-                              onChange={e => setUsername(e.target.value)}
-                              className="pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 text-gray-900"
-                              aria-label="Username"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                          <div className="relative">
-                            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                                <path d="M1.5 8.67v6.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-9.3 5.27a3 3 0 01-3 0L1.5 8.67z" />
-                                <path d="M22.5 6.75v-.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.75l9.3 5.27a3 3 0 003 0l8.7-4.98z" />
-                              </svg>
-                            </span>
-                            <input
-                              type="email"
-                              placeholder="you@example.com"
-                              value={email}
-                              onChange={e => setEmail(e.target.value)}
-                              className="pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 text-gray-900"
-                              aria-label="Email"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                          <div className="relative">
-                            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                                <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25V9H6A2.25 2.25 0 003.75 11.25v7.5A2.25 2.25 0 006 21h12a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0018 9h-.75V6.75A5.25 5.25 0 0012 1.5zm-3.75 7.5V6.75a3.75 3.75 0 117.5 0V9H8.25z" clipRule="evenodd" />
-                              </svg>
-                            </span>
-                            <input
-                              type="password"
-                              placeholder="••••••••"
-                              value={password}
-                              onChange={e => setPassword(e.target.value)}
-                              className="pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 text-gray-900"
-                              aria-label="Password"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-                          <div className="relative">
-                            <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                                <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25V9H6A2.25 2.25 0 003.75 11.25v7.5A2.25 2.25 0 006 21h12a2.25 2.25 0 002.25-2.25v-7.5A2.25 2.25 0 0018 9h-.75V6.75A5.25 5.25 0 0012 1.5zm-3.75 7.5V6.75a3.75 3.75 0 117.5 0V9H8.25z" clipRule="evenodd" />
-                              </svg>
-                            </span>
-                            <input
-                              type="password"
-                              placeholder="••••••••"
-                              value={confirmPassword}
-                              onChange={e => setConfirmPassword(e.target.value)}
-                              className="pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 text-gray-900"
-                              aria-label="Confirm Password"
-                            />
-                          </div>
-                        </div>
-
-                        {error && (
-                          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">⚠️ {error}</div>
-                        )}
-                        {success && (
-                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">✅ {success}</div>
-                        )}
-
-                        <button
-                          className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-[0_12px_24px_-12px_rgba(79,70,229,0.6)] active:scale-[0.99]"
-                          onClick={handleRegister}
-                          disabled={loading}
-                        >
-                          {loading ? "Registering..." : "Create account"}
-                        </button>
-                        <button
-                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-medium transition-all duration-200 hover:shadow-sm active:scale-[0.99]"
-                          onClick={() => (window.location.href = "/")}
-                        >
-                          Back to login
-                        </button>
-                      </div>
-                      <div className="mt-6 text-center text-xs text-gray-500">
-                        By creating an account you agree to reflective, supportive journaling guidelines.
-                      </div>
-                        </>
-                      ) : (
+                  </>
+                ) : (
                         <div className="text-center">
                           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-100 to-green-200 text-green-700 flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
@@ -371,7 +299,7 @@ export default function Register() {
                             </button>
                             <button
                               className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-xl font-medium transition-all duration-200 hover:shadow-sm active:scale-[0.99]"
-                              onClick={() => (window.location.href = "/")}
+                              onClick={() => (window.location.href = "/login")}
                             >
                               Back to login
                             </button>
@@ -384,35 +312,6 @@ export default function Register() {
                           </div>
                         </div>
                       )}
-                    </div>
-                  </div>
-                </div>
-                {/* Under-card details */}
-                <div className="px-8 pb-10">
-                  <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent my-6" />
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="rounded-xl border border-gray-200 bg-white/70 backdrop-blur p-4 text-center">
-                      <div className="mx-auto w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center mb-2">1</div>
-                      <p className="font-semibold text-gray-800">Register in seconds</p>
-                      <p className="text-xs text-gray-600 mt-1">Create an account with your email.</p>
-                    </div>
-                    <div className="rounded-xl border border-gray-200 bg-white/70 backdrop-blur p-4 text-center">
-                      <div className="mx-auto w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center mb-2">2</div>
-                      <p className="font-semibold text-gray-800">Start journaling</p>
-                      <p className="text-xs text-gray-600 mt-1">Log your day and reflect with AI.</p>
-                    </div>
-                    <div className="rounded-xl border border-gray-200 bg-white/70 backdrop-blur p-4 text-center">
-                      <div className="mx-auto w-8 h-8 rounded-full bg-pink-100 text-pink-700 flex items-center justify-center mb-2">3</div>
-                      <p className="font-semibold text-gray-800">Nourish better</p>
-                      <p className="text-xs text-gray-600 mt-1">Get nutrition tips to support your mood.</p>
-                    </div>
-                  </div>
-                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs">
-                    <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">Private by default</span>
-                    <span className="px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">Lightweight & fast</span>
-                    <span className="px-3 py-1 rounded-full bg-pink-50 text-pink-700 border border-pink-200">Daily habit friendly</span>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

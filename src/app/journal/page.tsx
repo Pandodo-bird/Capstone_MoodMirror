@@ -749,26 +749,26 @@ export default function JournalPage() {
       </div>
 
       {/* Main Content Container */}
-      <div className="relative max-w-4xl mx-auto px-6 py-8">
+      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {/* Ambient gradient blobs */}
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute right-[-120px] top-0 w-72 h-72 bg-gradient-to-br from-pink-300/40 to-indigo-300/40 rounded-full blur-3xl animate-pulse" />
           <div className="absolute left-[-120px] bottom-0 w-72 h-72 bg-gradient-to-br from-purple-300/40 to-yellow-300/40 rounded-full blur-3xl animate-pulse" />
         </div>
         
-        <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
+        <div className="bg-white/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
           {/* Page Header */}
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-7 rounded-2xl shadow-lg relative">
-            <h2 className="text-3xl font-bold text-white tracking-wide">
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-5 sm:px-6 py-4 sm:py-5 rounded-t-2xl sm:rounded-t-3xl shadow-lg relative">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-wide">
               Journal Entry for Today
             </h2>
-            <p className="text-indigo-100 text-sm mt-2">
+            <p className="text-indigo-100 text-xs sm:text-sm mt-1">
               {todayStr}
             </p>
           </div>
 
           {/* Content */}
-          <div className="p-6 sm:p-8 space-y-6">
+          <div className="p-4 sm:p-5 space-y-4">
             {/* Render each entry */}
             {entries.map((entry, entryIndex) => {
               const isExpanded = expandedEntryId === entry.id;
@@ -784,34 +784,34 @@ export default function JournalPage() {
                   <div 
                     key={entry.id} 
                     onClick={() => setExpandedEntryId(entry.id)}
-                    className="bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl border-2 border-indigo-100 shadow-md p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
+                    className="bg-gradient-to-br from-white to-indigo-50/30 rounded-xl sm:rounded-2xl border-2 border-indigo-100 shadow-md p-3 sm:p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
                   >
                     <div className="flex justify-between items-center">
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-bold text-indigo-900">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-1.5">
+                          <h3 className="text-base sm:text-lg font-bold text-indigo-900">
                             Entry {entryIndex + 1}
                           </h3>
                           {entry.detectedMood && moodConfig[entry.detectedMood as keyof typeof moodConfig] && (
-                            <div className={`inline-flex items-center px-3 py-1 rounded-lg ${moodConfig[entry.detectedMood as keyof typeof moodConfig].bgColor} ${moodConfig[entry.detectedMood as keyof typeof moodConfig].borderColor} border`}>
-                              <span className="text-lg mr-1">{moodConfig[entry.detectedMood as keyof typeof moodConfig].icon}</span>
+                            <div className={`inline-flex items-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg ${moodConfig[entry.detectedMood as keyof typeof moodConfig].bgColor} ${moodConfig[entry.detectedMood as keyof typeof moodConfig].borderColor} border`}>
+                              <span className="text-base sm:text-lg mr-0.5 sm:mr-1">{moodConfig[entry.detectedMood as keyof typeof moodConfig].icon}</span>
                               <span className={`text-xs font-semibold ${moodConfig[entry.detectedMood as keyof typeof moodConfig].textColor}`}>
                                 {moodConfig[entry.detectedMood as keyof typeof moodConfig].shortName}
                               </span>
                             </div>
                           )}
                         </div>
-                        <p className="text-gray-600 text-sm line-clamp-2">
+                        <p className="text-gray-600 text-xs sm:text-sm line-clamp-2">
                           {entry.text || "No text entered"}
                         </p>
                         {entry.foodSuggestions.length > 0 && (
-                          <p className="text-xs text-indigo-600 mt-2">
+                          <p className="text-xs text-indigo-600 mt-1.5">
                             {entry.foodSuggestions.length} food suggestion{entry.foodSuggestions.length !== 1 ? 's' : ''}
                           </p>
                         )}
                       </div>
-                      <div className="ml-4 text-gray-400">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="ml-3 sm:ml-4 text-gray-400">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
@@ -822,10 +822,10 @@ export default function JournalPage() {
 
               // Full expanded view
               return (
-                <div key={entry.id} className="bg-gradient-to-br from-white to-indigo-50/30 rounded-2xl border-2 border-indigo-100 shadow-lg p-6">
+                <div key={entry.id} className="bg-gradient-to-br from-white to-indigo-50/30 rounded-xl sm:rounded-2xl border-2 border-indigo-100 shadow-lg p-4 sm:p-5">
                   {/* Entry Header */}
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold text-indigo-900">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-lg sm:text-xl font-bold text-indigo-900">
                       Entry {entryIndex + 1}
                     </h3>
                     <div className="flex items-center gap-2">
@@ -834,19 +834,20 @@ export default function JournalPage() {
                           onClick={() => {
                             setExpandedEntryId(null);
                           }}
-                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-all duration-200"
+                          className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200"
                           title="Collapse entry"
                         >
                           ↓ Collapse
                         </button>
                       )}
-                      {entries.length > 1 && (
+                      {(entry.text || entry.detectedMood || entry.rawDetectedEmotion || entry.rawReflection || entry.polishedReflection) && (
                         <button
-                          onClick={() => handleRemoveEntry(entry.id)}
-                          className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-semibold rounded-lg transition-all duration-200"
-                          title="Remove this entry"
+                          onClick={() => setShowClearConfirm({ entryId: entry.id })}
+                          className="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200"
+                          title="Clear this entry"
+                          disabled={entry.entryLoading || entry.reflectionLoading || clearLoading}
                         >
-                          ✕ Remove
+                          🗑️ Clear
                         </button>
                       )}
                     </div>
@@ -854,19 +855,19 @@ export default function JournalPage() {
 
                   {/* Flagged Content Warning */}
                   {entry.flaggedWord && (
-                    <div className="mb-6 p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md">
-                      <div className="flex items-start gap-3">
+                    <div className="mb-4 p-3 sm:p-4 bg-red-50 border-2 border-red-300 rounded-lg sm:rounded-xl shadow-md">
+                      <div className="flex items-start gap-2 sm:gap-3">
                         <div className="flex-shrink-0">
-                          <span className="text-3xl">⚠️</span>
+                          <span className="text-2xl sm:text-3xl">⚠️</span>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-bold text-lg text-red-800 mb-2">
+                          <h3 className="font-bold text-base sm:text-lg text-red-800 mb-1.5">
                             Content Flagged
                           </h3>
-                          <p className="text-red-700 font-medium mb-1">
-                            Your entry contains flagged content: <span className="font-bold bg-red-100 px-2 py-1 rounded">&quot;{entry.flaggedWord}&quot;</span>
+                          <p className="text-red-700 font-medium text-sm mb-1">
+                            Your entry contains flagged content: <span className="font-bold bg-red-100 px-1.5 py-0.5 rounded">&quot;{entry.flaggedWord}&quot;</span>
                           </p>
-                          <p className="text-red-600 text-sm mt-2">
+                          <p className="text-red-600 text-xs sm:text-sm mt-1.5">
                             Please revise your entry to remove inappropriate content. The entry was not saved to your journal.
                           </p>
                         </div>
@@ -875,16 +876,16 @@ export default function JournalPage() {
                   )}
 
                   {/* User's Text Input - First Section */}
-                  <div className="mb-6">
-                    <label className="block mb-2 font-semibold text-gray-700">
+                  <div className="mb-4">
+                    <label className="block mb-1.5 text-sm sm:text-base font-semibold text-gray-700">
                       What&apos;s on your mind? 👇
                     </label>
                     <textarea
                       ref={entry.textareaRef}
-                      className="w-full p-4 border-2 border-indigo-200 rounded-xl text-gray-700 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 transition-all duration-200 resize-none bg-white shadow-sm hover:shadow-md min-h-[120px]"
+                      className="w-full p-3 sm:p-4 border-2 border-indigo-200 rounded-lg sm:rounded-xl text-gray-700 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 transition-all duration-200 resize-none bg-white shadow-sm hover:shadow-md min-h-[100px] sm:min-h-[120px] text-sm sm:text-base"
                       style={{ 
                         height: 'auto',
-                        minHeight: '120px',
+                        minHeight: '100px',
                       }}
                       placeholder="Write your thoughts, feelings, or anything you&apos;d like to remember..."
                       value={entry.text}
@@ -892,41 +893,41 @@ export default function JournalPage() {
                         updateEntry(entry.id, { text: e.target.value });
                         // Auto-resize textarea
                         e.target.style.height = 'auto';
-                        e.target.style.height = `${Math.max(120, e.target.scrollHeight)}px`;
+                        e.target.style.height = `${Math.max(100, e.target.scrollHeight)}px`;
                       }}
                       onInput={(e) => {
                         const target = e.target as HTMLTextAreaElement;
                         target.style.height = 'auto';
-                        target.style.height = `${Math.max(120, target.scrollHeight)}px`;
+                        target.style.height = `${Math.max(100, target.scrollHeight)}px`;
                       }}
                     />
                   </div>
 
                   {/* Divider - Only show if there's AI feedback */}
                   {!entry.flaggedWord && (entry.detectedMood || entry.polishedReflection || entry.foodSuggestions.length > 0 || entry.reflectionLoading) && (
-                    <div className="mb-6">
+                    <div className="mb-4">
                       <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
                     </div>
                   )}
 
                   {/* AI Feedback Section - Grouped Together */}
                   {!entry.flaggedWord && (entry.detectedMood || entry.polishedReflection || entry.foodSuggestions.length > 0 || entry.reflectionLoading) && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div className="mb-4">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
                         <span>✨</span>
                         <span>MoodMirror&apos;s Feedback</span>
                       </h3>
 
                       {/* Detected Emotion */}
                       {entry.detectedMood && moodConfig[entry.detectedMood as keyof typeof moodConfig] && (
-                        <div className="mb-4">
-                          <label className="block mb-2 text-sm font-medium text-gray-600">
+                        <div className="mb-3">
+                          <label className="block mb-1.5 text-xs sm:text-sm font-medium text-gray-600">
                             Detected Emotion:
                           </label>
                           <div className="flex items-center">
-                            <div className={`inline-flex items-center px-4 py-2 rounded-xl ${moodConfig[entry.detectedMood as keyof typeof moodConfig].bgColor} ${moodConfig[entry.detectedMood as keyof typeof moodConfig].borderColor} border-2 shadow-sm`}>
-                              <span className="text-xl mr-2">{moodConfig[entry.detectedMood as keyof typeof moodConfig].icon}</span>
-                              <span className={`font-semibold ${moodConfig[entry.detectedMood as keyof typeof moodConfig].textColor} tracking-wide`}>
+                            <div className={`inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl ${moodConfig[entry.detectedMood as keyof typeof moodConfig].bgColor} ${moodConfig[entry.detectedMood as keyof typeof moodConfig].borderColor} border-2 shadow-sm`}>
+                              <span className="text-lg sm:text-xl mr-1.5 sm:mr-2">{moodConfig[entry.detectedMood as keyof typeof moodConfig].icon}</span>
+                              <span className={`font-semibold text-sm sm:text-base ${moodConfig[entry.detectedMood as keyof typeof moodConfig].textColor} tracking-wide`}>
                                 {moodConfig[entry.detectedMood as keyof typeof moodConfig].shortName}
                               </span>
                             </div>
@@ -936,18 +937,18 @@ export default function JournalPage() {
 
                       {/* AI Reflection */}
                       {(entry.rawReflection || entry.polishedReflection || entry.reflectionLoading) && (
-                        <div className="mb-4">
-                          <label className="block mb-2 text-sm font-medium text-gray-600">
+                        <div className="mb-3">
+                          <label className="block mb-1.5 text-xs sm:text-sm font-medium text-gray-600">
                             AI Reflection:
                           </label>
                           {entry.reflectionLoading ? (
-                            <div className="text-center py-4 bg-purple-50 rounded-lg border border-purple-200">
-                              <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                              <p className="text-purple-600 text-sm mt-2">Generating reflection...</p>
+                            <div className="text-center py-3 sm:py-4 bg-purple-50 rounded-lg border border-purple-200">
+                              <div className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                              <p className="text-purple-600 text-xs sm:text-sm mt-1.5 sm:mt-2">Generating reflection...</p>
                             </div>
                           ) : (
-                            <div className="p-3 sm:p-4 border rounded-lg shadow-sm bg-purple-50">
-                              <p className="text-gray-900 leading-relaxed text-sm break-words">
+                            <div className="p-3 sm:p-4 border-2 border-purple-200 rounded-lg shadow-sm bg-gradient-to-br from-purple-50 to-indigo-50">
+                              <p className="text-gray-900 leading-relaxed text-sm sm:text-base font-medium break-words">
                                 {entry.polishedReflection}
                               </p>
                             </div>
@@ -958,64 +959,64 @@ export default function JournalPage() {
                       {/* Food Suggestions */}
                       {entry.detectedMood && (
                         <div>
-                          <label className="block mb-3 text-sm font-medium text-gray-600">
+                          <label className="block mb-2 text-xs sm:text-sm font-medium text-gray-600">
                             Food Suggestions:
                           </label>
                           {entry.reflectionLoading ? (
-                            <div className="text-center py-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
-                              <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                              <p className="text-indigo-600 font-medium mt-3">Generating personalized food suggestions...</p>
+                            <div className="text-center py-4 sm:py-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg sm:rounded-xl border-2 border-indigo-200">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                              <p className="text-indigo-600 font-medium text-xs sm:text-sm mt-2 sm:mt-3">Generating personalized food suggestions...</p>
                             </div>
                           ) : entry.foodSuggestions.length === 0 ? (
-                            <div className="text-center py-6 bg-gradient-to-br from-gray-50 to-indigo-50 rounded-xl border-2 border-gray-200">
-                              <p className="text-gray-600 font-medium mb-2">
+                            <div className="text-center py-4 sm:py-5 bg-gradient-to-br from-gray-50 to-indigo-50 rounded-lg sm:rounded-xl border-2 border-gray-200">
+                              <p className="text-gray-600 font-medium text-xs sm:text-sm mb-1.5">
                                 {avoidedFoods.size > 0 
                                   ? "All food suggestions have been avoided. Remove some avoided foods from your profile to see more suggestions."
                                   : "No food suggestions available yet. Save your entry to generate suggestions."
                                 }
                               </p>
                               {avoidedFoods.size > 0 && (
-                                <p className="text-sm text-gray-500 mt-2">
+                                <p className="text-xs text-gray-500 mt-1.5">
                                   You have {avoidedFoods.size} avoided food{avoidedFoods.size > 1 ? 's' : ''}
                                 </p>
                               )}
                             </div>
                           ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-2 sm:space-y-2.5">
                               {entry.foodSuggestions.map((suggestion, index) => (
                                 <div 
                                   key={index} 
-                                  className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-200 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
+                                  className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-200 rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
                                 >
                                   <button
                                     onClick={() => updateEntry(entry.id, { expandedFoodIndex: entry.expandedFoodIndex === index ? null : index })}
-                                    className="w-full flex justify-between items-center p-4 hover:bg-white/50 transition-colors duration-200"
+                                    className="w-full flex justify-between items-center p-3 sm:p-4 hover:bg-white/50 transition-colors duration-200"
                                   >
-                                    <div className="flex items-center gap-3 flex-1 text-left">
-                                      <span className="text-2xl">🍴</span>
-                                      <span className="font-bold text-lg text-indigo-900">{suggestion.name}</span>
+                                    <div className="flex items-center gap-2 sm:gap-3 flex-1 text-left">
+                                      <span className="text-xl sm:text-2xl">🍴</span>
+                                      <span className="font-bold text-base sm:text-lg text-indigo-900">{suggestion.name}</span>
                                     </div>
                                     <div className={`transform transition-transform duration-300 ${entry.expandedFoodIndex === index ? 'rotate-180' : ''}`}>
-                                      <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                       </svg>
                                     </div>
                                   </button>
                                   
                                   {entry.expandedFoodIndex === index && (
-                                    <div className="px-4 pb-4 pt-2 border-t border-indigo-200/50 bg-white/60 animate-in slide-in-from-top-2 duration-300">
-                                      <p className="text-base text-gray-700 leading-relaxed font-medium mb-4">
+                                    <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-2 border-t border-indigo-200/50 bg-white/60 animate-in slide-in-from-top-2 duration-300">
+                                      <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-medium mb-3 sm:mb-4">
                                         {suggestion.reason}
                                       </p>
                                       <button
                                         onClick={() => handleAvoidFood(entry.id, suggestion.name)}
                                         disabled={avoidingFood?.entryId === entry.id && avoidingFood?.food === suggestion.name}
-                                        className="w-full px-4 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow border border-red-300"
+                                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow border border-red-300"
                                         title="Don't show this food in future suggestions"
                                       >
                                         {avoidingFood?.entryId === entry.id && avoidingFood?.food === suggestion.name ? (
                                           <>
-                                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                                             <span>Processing...</span>
                                           </>
                                         ) : (
@@ -1038,44 +1039,44 @@ export default function JournalPage() {
 
                 {/* Status Messages */}
                 {entry.entryError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                  <div className="mb-3 p-2.5 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
                     ⚠️ {entry.entryError}
                   </div>
                 )}
                 {entry.entrySuccess && (
-                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                  <div className="mb-3 p-2.5 sm:p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-xs sm:text-sm">
                     ✅ {entry.entrySuccess}
                   </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  {(entry.text || entry.detectedMood || entry.rawDetectedEmotion || entry.rawReflection || entry.polishedReflection) && (
-                    <div className="mb-3">
-                      <button
-                        className="w-full bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg font-medium transition-all duration-200 border border-red-200"
-                        onClick={() => setShowClearConfirm({ entryId: entry.id })}
-                        disabled={entry.entryLoading || entry.reflectionLoading || clearLoading}
-                      >
-                        🗑️ Clear Entry {entryIndex + 1}
-                      </button>
-                    </div>
-                  )}
-                  
-                  <button
-                    className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                    onClick={() => handleSaveEntry(entry.id)}
-                    disabled={entry.entryLoading || entry.reflectionLoading || clearLoading}
-                  >
-                    {entry.entryLoading || entry.reflectionLoading ? (
-                      <span className="flex items-center justify-center">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                        {entry.reflectionLoading ? "Generating reflection..." : "Saving..."}
+                <div className="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-gray-200">
+                  {isSaved ? (
+                    <button
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-200 shadow-lg text-sm sm:text-base cursor-default"
+                      disabled
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <span>✅</span>
+                        <span>Entry Saved</span>
                       </span>
-                    ) : (
-                      "Save Entry"
-                    )}
-                  </button>
+                    </button>
+                  ) : (
+                    <button
+                      className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-sm sm:text-base"
+                      onClick={() => handleSaveEntry(entry.id)}
+                      disabled={entry.entryLoading || entry.reflectionLoading || clearLoading}
+                    >
+                      {entry.entryLoading || entry.reflectionLoading ? (
+                        <span className="flex items-center justify-center">
+                          <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                          <span className="text-xs sm:text-sm">{entry.reflectionLoading ? "Generating reflection..." : "Saving..."}</span>
+                        </span>
+                      ) : (
+                        "Save Entry"
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
               );
@@ -1083,10 +1084,10 @@ export default function JournalPage() {
 
             {/* Add Entry Button */}
             {entries.length < 3 && (
-              <div className="flex justify-center">
+              <div className="flex justify-center mt-4">
                 <button
                   onClick={handleAddEntry}
-                  className="px-6 py-3 bg-gradient-to-r from-indigo-400 to-purple-500 hover:from-indigo-500 hover:to-purple-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-400 to-purple-500 hover:from-indigo-500 hover:to-purple-600 text-white text-sm sm:text-base font-semibold rounded-lg sm:rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   ➕ Add Another Entry ({entries.length}/3)
                 </button>
