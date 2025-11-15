@@ -756,7 +756,7 @@ export default function JournalPage() {
             <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 shadow-lg border border-indigo-400/30">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-indigo-100 text-xs font-medium mb-1">Today's Entries</p>
+                  <p className="text-indigo-100 text-xs font-medium mb-1">Today&apos;s Entries</p>
                   <p className="text-3xl font-bold text-white">{entries.filter(e => e.text.trim()).length}</p>
                 </div>
                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
@@ -805,7 +805,7 @@ export default function JournalPage() {
                     </div>
                     <div>
                       <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight">
-                        Today's Reflection
+                        Today&apos;s Reflection
                       </h2>
                       <p className="text-indigo-100 text-sm sm:text-base mt-1 flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
