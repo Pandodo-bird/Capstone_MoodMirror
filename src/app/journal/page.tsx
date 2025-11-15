@@ -440,7 +440,8 @@ export default function JournalPage() {
         }));
       });
     }
-  }, [avoidedFoods]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avoidedFoods.size]);
 
   // Fetch avoided foods for the user
   useEffect(() => {

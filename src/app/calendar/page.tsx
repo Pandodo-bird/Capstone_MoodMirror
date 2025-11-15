@@ -528,9 +528,6 @@ export default function CalendarPage() {
                 const hasEntries = dateEntries.length > 0;
                 // Get up to 3 entries for dots
                 const entriesForDots = dateEntries.slice(0, 3);
-                // Use first entry's mood for calendar background
-                const firstEntry = dateEntries.length > 0 ? dateEntries[0] : null;
-                const moodInfo = firstEntry?.mood ? moodConfig[firstEntry.mood as keyof typeof moodConfig] : null;
                 const isToday = dateStr === todayStr;
                 const isFuture = dateStr > todayStr;
                 
