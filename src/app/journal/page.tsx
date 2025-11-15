@@ -387,19 +387,25 @@ export default function JournalPage() {
             // Mark all loaded entries as saved (they should be collapsed)
             const savedIds = new Set(loadedEntries.map(e => e.id));
             setSavedEntryIds(savedIds);
-            // Expand the last entry if it has content, otherwise expand the first empty one
+            // Check if we need to create a new entry or expand an existing one
             const lastEntry = loadedEntries[loadedEntries.length - 1];
-            if (lastEntry.text.trim() || lastEntry.detectedMood) {
+            const lastEntryIsEmpty = !lastEntry.text.trim() && !lastEntry.detectedMood;
+            
+            // Only create a new entry if we have less than 3 entries and the last entry has content
+            if ((lastEntry.text.trim() || lastEntry.detectedMood) && loadedEntries.length < 3) {
               // If last entry has content, create a new empty one and expand it
               const newId = Math.max(...loadedEntries.map(e => e.id)) + 1;
               const newEntry = createNewEntry(newId);
               setEntries([...loadedEntries, newEntry]);
               setExpandedEntryId(newId);
-            } else {
-              // Expand the last entry if it's empty
+            } else if (lastEntryIsEmpty) {
+              // Only expand the last entry if it's empty (not saved yet)
               setExpandedEntryId(lastEntry.id);
               savedIds.delete(lastEntry.id);
               setSavedEntryIds(savedIds);
+            } else {
+              // All entries are saved and have content - don't expand any by default
+              setExpandedEntryId(null);
             }
           }
         } catch (e) {
@@ -411,8 +417,30 @@ export default function JournalPage() {
       
       loadTodayEntries();
     }
-  }, [user, todayStr, avoidedFoods]);
+  }, [user, todayStr]);
 
+  // Update food suggestions when avoidedFoods changes (without reloading entries)
+  useEffect(() => {
+    if (avoidedFoods.size > 0) {
+      setEntries(prevEntries => {
+        // Only update if there are entries and if any have food suggestions that need filtering
+        if (prevEntries.length === 0) return prevEntries;
+        
+        const hasSuggestionsToFilter = prevEntries.some(entry => 
+          entry.foodSuggestions.some(s => avoidedFoods.has(s.name))
+        );
+        
+        if (!hasSuggestionsToFilter) return prevEntries;
+        
+        return prevEntries.map(entry => ({
+          ...entry,
+          foodSuggestions: entry.foodSuggestions.filter(suggestion => 
+            !avoidedFoods.has(suggestion.name)
+          )
+        }));
+      });
+    }
+  }, [avoidedFoods]);
 
   // Fetch avoided foods for the user
   useEffect(() => {
@@ -933,20 +961,18 @@ export default function JournalPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {isSaved && (
-                        <button
-                          onClick={() => {
-                            setExpandedEntryId(null);
-                          }}
-                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:shadow"
-                          title="Collapse entry"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                            <path d="M18 15l-6-6-6 6" />
-                          </svg>
-                          Collapse
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          setExpandedEntryId(null);
+                        }}
+                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:shadow"
+                        title="Collapse entry"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                          <path d="M18 15l-6-6-6 6" />
+                        </svg>
+                        Collapse
+                      </button>
                       {(entry.text || entry.detectedMood || entry.rawDetectedEmotion || entry.rawReflection || entry.polishedReflection) && (
                         <button
                           onClick={() => setShowClearConfirm({ entryId: entry.id })}
@@ -994,23 +1020,32 @@ export default function JournalPage() {
                     <div className="relative">
                       <textarea
                         ref={entry.textareaRef}
-                        className="w-full p-4 sm:p-5 border-2 border-indigo-200 rounded-xl sm:rounded-2xl text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 transition-all duration-200 resize-none bg-white shadow-md hover:shadow-lg min-h-[120px] sm:min-h-[140px] text-sm sm:text-base leading-relaxed"
+                        readOnly={isSaved}
+                        className={`w-full p-4 sm:p-5 border-2 rounded-xl sm:rounded-2xl text-gray-800 transition-all duration-200 resize-none shadow-md min-h-[120px] sm:min-h-[140px] text-sm sm:text-base leading-relaxed ${
+                          isSaved 
+                            ? "border-gray-300 bg-gray-50 cursor-not-allowed opacity-75" 
+                            : "border-indigo-200 bg-white hover:shadow-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500"
+                        }`}
                         style={{ 
                           height: 'auto',
                           minHeight: '120px',
                         }}
-                        placeholder="Take a moment to reflect... What made you smile today? What challenges did you face? How are you feeling right now?"
+                        placeholder={isSaved ? "Entry saved - no longer editable" : "Take a moment to reflect... What made you smile today? What challenges did you face? How are you feeling right now?"}
                         value={entry.text}
                         onChange={(e) => {
-                          updateEntry(entry.id, { text: e.target.value });
-                          // Auto-resize textarea
-                          e.target.style.height = 'auto';
-                          e.target.style.height = `${Math.max(120, e.target.scrollHeight)}px`;
+                          if (!isSaved) {
+                            updateEntry(entry.id, { text: e.target.value });
+                            // Auto-resize textarea
+                            e.target.style.height = 'auto';
+                            e.target.style.height = `${Math.max(120, e.target.scrollHeight)}px`;
+                          }
                         }}
                         onInput={(e) => {
-                          const target = e.target as HTMLTextAreaElement;
-                          target.style.height = 'auto';
-                          target.style.height = `${Math.max(120, target.scrollHeight)}px`;
+                          if (!isSaved) {
+                            const target = e.target as HTMLTextAreaElement;
+                            target.style.height = 'auto';
+                            target.style.height = `${Math.max(120, target.scrollHeight)}px`;
+                          }
                         }}
                       />
                       {entry.text && (
