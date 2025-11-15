@@ -3,13 +3,13 @@ import { initializeApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDZv_QWPAj0uLSg12xg7Z-QG7YcoC8WlfM",
-  authDomain: "moodmirror-20843.firebaseapp.com",
-  projectId: "moodmirror-20843",
-  storageBucket: "moodmirror-20843.firebasestorage.app",
-  messagingSenderId: "792067626602",
-  appId: "1:792067626602:web:4d92d62e49a60467a91c13",
-  measurementId: "G-0GLHYPQRBQ"
+  apiKey: "AIzaSyDOXUILJmxUSpuE2IlxX1Z96tBU4EsXQHw",
+  authDomain: "moodmirror-final.firebaseapp.com",
+  projectId: "moodmirror-final",
+  storageBucket: "moodmirror-final.firebasestorage.app",
+  messagingSenderId: "185637008834",
+  appId: "1:185637008834:web:cae1752bf503df6687d25b",
+  measurementId: "G-EVJZCW5QZC"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];

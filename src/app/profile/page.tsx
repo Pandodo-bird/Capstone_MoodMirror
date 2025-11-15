@@ -15,6 +15,10 @@ import {
 
 const db = getFirestore();
 
+function getDaysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
 export default function ProfilePage() {
   const [user, setUser] = useState<{ uid: string; email: string | null; displayName: string | null } | null>(null);
   const [displayName, setDisplayName] = useState<string>("");

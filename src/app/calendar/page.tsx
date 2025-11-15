@@ -80,6 +80,8 @@ export default function CalendarPage() {
   const [selectedDateEntries, setSelectedDateEntries] = useState<Array<{ entryId: number; mood: string; text: string; polishedReflection?: string; rawReflection?: string; detectedEmotion?: string; flaggedWord?: string | null }>>([]);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [monthlyEmotions, setMonthlyEmotions] = useState<{[month: string]: {[emotion: string]: number}}>({});
+  // Cache for loaded months to avoid re-fetching
+  const [loadedMonthsCache, setLoadedMonthsCache] = useState<{ [monthKey: string]: { [date: string]: Array<{ entryId: number; mood: string; text: string; polishedReflection?: string; rawReflection?: string; detectedEmotion?: string; flaggedWord?: string | null }> } }>({});
   // Initialize dark mode from localStorage immediately (with SSR check)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -165,6 +167,14 @@ export default function CalendarPage() {
   // Fetch all entries for the current month
   useEffect(() => {
     if (user) {
+      const monthKey = `${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}`;
+      
+      // Check if this month is already cached
+      if (loadedMonthsCache[monthKey]) {
+        setEntries(loadedMonthsCache[monthKey]);
+        return;
+      }
+
       const fetchEntries = async () => {
         const startOfMonth = `${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-01`;
         const endOfMonth = `${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-${String(getDaysInMonth(calendarYear, calendarMonth)).padStart(2, "0")}`;
@@ -180,6 +190,11 @@ export default function CalendarPage() {
 
         const newEntries: { [date: string]: Array<{ entryId: number; mood: string; text: string; polishedReflection?: string; rawReflection?: string; detectedEmotion?: string; flaggedWord?: string | null }> } = {};
 
+        // First, check if any dates in this month have entries by querying the parent collection
+        // This optimization: only query dates that might have entries
+        // We'll still need to check each date, but we can optimize by checking month-level first
+        // For now, we'll query all dates but cache the result
+        
         // Load entries for each date in the month
         await Promise.all(datesInMonth.map(async (dateStr) => {
           try {
@@ -233,6 +248,11 @@ export default function CalendarPage() {
           }
         }));
 
+        // Cache the loaded month
+        setLoadedMonthsCache(prev => ({
+          ...prev,
+          [monthKey]: newEntries
+        }));
         setEntries(newEntries);
       };
 
@@ -256,48 +276,75 @@ export default function CalendarPage() {
             monthsToCheck.push(monthYear);
           }
 
-          // Get all dates in these months
-          const datesToCheck: string[] = [];
+          // First, check if we have cached data for any of these months
+          const monthsToFetch: string[] = [];
           monthsToCheck.forEach(monthYear => {
-            const [year, month] = monthYear.split('-');
-            const daysInMonth = getDaysInMonth(parseInt(year), parseInt(month) - 1);
-            for (let day = 1; day <= daysInMonth; day++) {
-              const dateStr = `${year}-${month}-${String(day).padStart(2, "0")}`;
-              datesToCheck.push(dateStr);
+            if (loadedMonthsCache[monthYear]) {
+              // Use cached data
+              const cachedEntries = loadedMonthsCache[monthYear];
+              Object.keys(cachedEntries).forEach(dateStr => {
+                const entries = cachedEntries[dateStr];
+                entries.forEach(entry => {
+                  if (entry.mood) {
+                    if (!emotionData[monthYear]) {
+                      emotionData[monthYear] = {};
+                    }
+                    if (!emotionData[monthYear][entry.mood]) {
+                      emotionData[monthYear][entry.mood] = 0;
+                    }
+                    emotionData[monthYear][entry.mood]++;
+                  }
+                });
+              });
+            } else {
+              monthsToFetch.push(monthYear);
             }
           });
 
-          // Load entries for each date
-          await Promise.all(datesToCheck.map(async (dateStr) => {
-            try {
-              const entriesRef = collection(db, "users", user.uid, "journalEntries", dateStr, "entries");
-              const entriesSnap = await getDocs(entriesRef);
-              
-              if (!entriesSnap.empty) {
-                const date = new Date(dateStr);
-                const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-
-                // Process each entry for this date
-                entriesSnap.forEach((entryDoc) => {
-                  const entryData = entryDoc.data() as { mood?: string; flagged?: boolean };
-                  
-                  // Skip flagged entries
-                  if (entryData.flagged || !entryData.mood) return;
-                  
-                  // Count emotions per month
-                  if (!emotionData[monthYear]) {
-                    emotionData[monthYear] = {};
-                  }
-                  if (!emotionData[monthYear][entryData.mood]) {
-                    emotionData[monthYear][entryData.mood] = 0;
-                  }
-                  emotionData[monthYear][entryData.mood]++;
-                });
+          // Only fetch months that aren't cached
+          if (monthsToFetch.length > 0) {
+            const datesToCheck: string[] = [];
+            monthsToFetch.forEach(monthYear => {
+              const [year, month] = monthYear.split('-');
+              const daysInMonth = getDaysInMonth(parseInt(year), parseInt(month) - 1);
+              for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${month}-${String(day).padStart(2, "0")}`;
+                datesToCheck.push(dateStr);
               }
-            } catch {
-              // Silently skip
-            }
-          }));
+            });
+
+            // Load entries for each date that's not cached
+            await Promise.all(datesToCheck.map(async (dateStr) => {
+              try {
+                const entriesRef = collection(db, "users", user.uid, "journalEntries", dateStr, "entries");
+                const entriesSnap = await getDocs(entriesRef);
+                
+                if (!entriesSnap.empty) {
+                  const date = new Date(dateStr);
+                  const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+                  // Process each entry for this date
+                  entriesSnap.forEach((entryDoc) => {
+                    const entryData = entryDoc.data() as { mood?: string; flagged?: boolean };
+                    
+                    // Skip flagged entries
+                    if (entryData.flagged || !entryData.mood) return;
+                    
+                    // Count emotions per month
+                    if (!emotionData[monthYear]) {
+                      emotionData[monthYear] = {};
+                    }
+                    if (!emotionData[monthYear][entryData.mood]) {
+                      emotionData[monthYear][entryData.mood] = 0;
+                    }
+                    emotionData[monthYear][entryData.mood]++;
+                  });
+                }
+              } catch {
+                // Silently skip
+              }
+            }));
+          }
 
           setMonthlyEmotions(emotionData);
         } catch (error) {
@@ -307,7 +354,7 @@ export default function CalendarPage() {
 
       fetchMonthlyEmotions();
     }
-  }, [user]);
+  }, [user, loadedMonthsCache]);
 
 
   const handleDayClick = async (day: number) => {
