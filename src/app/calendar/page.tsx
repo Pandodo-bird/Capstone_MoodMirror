@@ -258,6 +258,7 @@ export default function CalendarPage() {
 
       fetchEntries();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, calendarMonth, calendarYear]);
 
   // Fetch monthly emotion trends for the last 5 months
