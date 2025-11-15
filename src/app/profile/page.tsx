@@ -31,7 +31,62 @@ export default function ProfilePage() {
     journalingSince: null as Date | null,
   });
   const [showAvoidedFoodsModal, setShowAvoidedFoodsModal] = useState(false);
+  // Initialize dark mode from localStorage immediately (with SSR check)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const savedDarkMode = localStorage.getItem('moodmirror-dark-mode');
+      return savedDarkMode === 'true';
+    }
+    return false;
+  });
   const router = useRouter();
+
+  // Save dark mode preference to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('moodmirror-dark-mode', isDarkMode.toString());
+    }
+  }, [isDarkMode]);
+
+  // Sync dark mode state with localStorage on visibility change (handles navigation)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const syncDarkMode = () => {
+        const savedDarkMode = localStorage.getItem('moodmirror-dark-mode');
+        if (savedDarkMode !== null) {
+          const shouldBeDark = savedDarkMode === 'true';
+          if (shouldBeDark !== isDarkMode) {
+            setIsDarkMode(shouldBeDark);
+          }
+        }
+      };
+
+      // Sync when page becomes visible (handles navigation back to the page)
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          syncDarkMode();
+        }
+      };
+      
+      // Sync on storage change (if changed in another tab)
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'moodmirror-dark-mode' && e.newValue !== null) {
+          setIsDarkMode(e.newValue === 'true');
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('storage', handleStorageChange);
+
+      // Sync on mount (in case component was cached)
+      syncDarkMode();
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('storage', handleStorageChange);
+      };
+    }
+  }, [isDarkMode]);
 
   // Watch authentication
   useEffect(() => {
@@ -277,10 +332,16 @@ export default function ProfilePage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-300 ${
+      isDarkMode 
+        ? "bg-gradient-to-br from-gray-900 via-indigo-950 to-purple-950" 
+        : "bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50"
+    }`}>
       {/* Background mesh + subtle grid */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-60"
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+          isDarkMode ? "opacity-30" : "opacity-60"
+        }`}
         style={{
           backgroundImage:
             "radial-gradient(60rem 60rem at 10% -10%, rgba(129, 140, 248, 0.25), transparent 50%)," +
@@ -290,10 +351,12 @@ export default function ProfilePage() {
         }}
       />
       <div
-        className="pointer-events-none absolute inset-0"
+        className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+          isDarkMode ? "opacity-20" : "opacity-100"
+        }`}
         style={{
           backgroundImage:
-            "linear-gradient(rgba(0,0,0,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.035) 1px, transparent 1px)",
+            `linear-gradient(${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)"} 1px, transparent 1px), linear-gradient(90deg, ${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.035)"} 1px, transparent 1px)`,
           backgroundSize: "24px 24px, 24px 24px",
           backgroundPosition: "-1px -1px",
         }}
@@ -309,6 +372,28 @@ export default function ProfilePage() {
               <h1 className="text-2xl font-extrabold tracking-wide bg-gradient-to-r from-white via-indigo-100 to-pink-100 bg-clip-text text-transparent drop-shadow-sm">Profile</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg font-medium transition-all duration-200 backdrop-blur-sm border border-white/30 shadow-sm flex items-center justify-center"
+                title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {isDarkMode ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={() => router.push("/journal")}
+                className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-medium transition-all duration-200 backdrop-blur-sm border border-white/30 shadow-sm"
+              >
+                📝 Journal
+              </button>
               <button
                 onClick={handleBackToCalendar}
                 className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-medium transition-all duration-200 backdrop-blur-sm border border-white/30 shadow-sm"
@@ -328,7 +413,11 @@ export default function ProfilePage() {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-6 py-8 relative">
-        <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
+        <div className={`backdrop-blur-xl rounded-3xl shadow-2xl border overflow-hidden transition-colors duration-300 ${
+          isDarkMode 
+            ? "bg-gray-800/90 border-gray-700/60" 
+            : "bg-white/85 border-white/60"
+        }`}>
           {/* Profile Header */}
           <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-6">
             <div className="flex items-center space-x-4">
@@ -347,27 +436,45 @@ export default function ProfilePage() {
           <div className="p-8">
              {/* User Information */}
             <div className="mb-8">
-               <h3 className="text-xl font-semibold text-gray-800 mb-4">Account Information</h3>
-              <div className="bg-gray-50 rounded-xl p-6">
+               <h3 className={`text-xl font-semibold mb-4 transition-colors duration-300 ${
+                 isDarkMode ? "text-gray-200" : "text-gray-800"
+               }`}>Account Information</h3>
+              <div className={`rounded-xl p-6 transition-colors duration-300 ${
+                isDarkMode ? "bg-gray-700/50" : "bg-gray-50"
+              }`}>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Username</dt>
-                    <dd className="mt-1 text-gray-800 font-medium">{displayName || "-"}</dd>
+                    <dt className={`text-sm font-medium transition-colors duration-300 ${
+                      isDarkMode ? "text-gray-400" : "text-gray-600"
+                    }`}>Username</dt>
+                    <dd className={`mt-1 font-medium transition-colors duration-300 ${
+                      isDarkMode ? "text-gray-200" : "text-gray-800"
+                    }`}>{displayName || "-"}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-600">Email</dt>
-                    <dd className="mt-1 text-gray-800 font-medium">{user.email}</dd>
+                    <dt className={`text-sm font-medium transition-colors duration-300 ${
+                      isDarkMode ? "text-gray-400" : "text-gray-600"
+                    }`}>Email</dt>
+                    <dd className={`mt-1 font-medium transition-colors duration-300 ${
+                      isDarkMode ? "text-gray-200" : "text-gray-800"
+                    }`}>{user.email}</dd>
                   </div>
                 </dl>
                 
                 {/* Food Preferences */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className={`mt-6 pt-6 border-t transition-colors duration-300 ${
+                  isDarkMode ? "border-gray-600" : "border-gray-200"
+                }`}>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Food Preferences</p>
-                      <p className="mt-1 text-gray-800">
+                      <p className={`text-sm font-medium transition-colors duration-300 ${
+                        isDarkMode ? "text-gray-400" : "text-gray-600"
+                      }`}>Food Preferences</p>
+                      <p className={`mt-1 transition-colors duration-300 ${
+                        isDarkMode ? "text-gray-300" : "text-gray-800"
+                      }`}>
                         {avoidedFoodsLoading ? (
-                          <span className="text-gray-500">Loading...</span>
+                          <span className={isDarkMode ? "text-gray-500" : "text-gray-500"}>Loading...</span>
                         ) : avoidedFoods.length === 0 ? (
                           <span>You haven&apos;t marked any foods to avoid yet.</span>
                         ) : (
@@ -377,7 +484,11 @@ export default function ProfilePage() {
                     </div>
                     <button
                       onClick={() => setShowAvoidedFoodsModal(true)}
-                      className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-sm font-medium rounded-lg transition-all duration-200"
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                        isDarkMode
+                          ? "bg-indigo-800/50 hover:bg-indigo-700/50 text-indigo-300"
+                          : "bg-indigo-100 hover:bg-indigo-200 text-indigo-700"
+                      }`}
                     >
                       Manage List
                     </button>
@@ -388,52 +499,96 @@ export default function ProfilePage() {
 
            {/* Your Activity / Journal Stats */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">Your Activity</h3>
+              <h3 className={`text-xl font-semibold mb-4 transition-colors duration-300 ${
+                isDarkMode ? "text-gray-200" : "text-gray-800"
+              }`}>Your Activity</h3>
               {loading ? (
-                <div className="bg-gray-50 rounded-xl p-6 text-center">
+                <div className={`rounded-xl p-6 text-center transition-colors duration-300 ${
+                  isDarkMode ? "bg-gray-700/50" : "bg-gray-50"
+                }`}>
                   <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <p className="text-indigo-600 text-sm mt-3">Loading your journal stats...</p>
+                  <p className={`text-sm mt-3 transition-colors duration-300 ${
+                    isDarkMode ? "text-indigo-400" : "text-indigo-600"
+                  }`}>Loading your journal stats...</p>
                 </div>
               ) : (
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
+                <div className={`rounded-xl p-6 border transition-colors duration-300 ${
+                  isDarkMode
+                    ? "bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border-indigo-700"
+                    : "bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200"
+                }`}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="bg-white/80 rounded-lg p-4 border border-indigo-100">
+                    <div className={`rounded-lg p-4 border transition-colors duration-300 ${
+                      isDarkMode
+                        ? "bg-gray-800/50 border-indigo-800"
+                        : "bg-white/80 border-indigo-100"
+                    }`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-600">Current Streak</span>
+                        <span className={`text-sm font-medium transition-colors duration-300 ${
+                          isDarkMode ? "text-gray-400" : "text-gray-600"
+                        }`}>Current Streak</span>
                         <span className="text-lg">🔥</span>
                       </div>
-                      <p className="text-2xl font-bold text-indigo-600">
+                      <p className={`text-2xl font-bold transition-colors duration-300 ${
+                        isDarkMode ? "text-indigo-400" : "text-indigo-600"
+                      }`}>
                         {journalStats.currentStreak} {journalStats.currentStreak === 1 ? 'Day' : 'Days'}
                       </p>
                       {journalStats.currentStreak > 0 && (
-                        <p className="text-xs text-green-600 mt-1 font-medium">Active</p>
+                        <p className={`text-xs mt-1 font-medium transition-colors duration-300 ${
+                          isDarkMode ? "text-green-400" : "text-green-600"
+                        }`}>Active</p>
                       )}
                     </div>
                     
-                    <div className="bg-white/80 rounded-lg p-4 border border-indigo-100">
+                    <div className={`rounded-lg p-4 border transition-colors duration-300 ${
+                      isDarkMode
+                        ? "bg-gray-800/50 border-indigo-800"
+                        : "bg-white/80 border-indigo-100"
+                    }`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-600">Longest Streak</span>
+                        <span className={`text-sm font-medium transition-colors duration-300 ${
+                          isDarkMode ? "text-gray-400" : "text-gray-600"
+                        }`}>Longest Streak</span>
                         <span className="text-lg">⭐</span>
                       </div>
-                      <p className="text-2xl font-bold text-purple-600">
+                      <p className={`text-2xl font-bold transition-colors duration-300 ${
+                        isDarkMode ? "text-purple-400" : "text-purple-600"
+                      }`}>
                         {journalStats.longestStreak} {journalStats.longestStreak === 1 ? 'Day' : 'Days'}
                       </p>
                     </div>
                     
-                    <div className="bg-white/80 rounded-lg p-4 border border-indigo-100">
+                    <div className={`rounded-lg p-4 border transition-colors duration-300 ${
+                      isDarkMode
+                        ? "bg-gray-800/50 border-indigo-800"
+                        : "bg-white/80 border-indigo-100"
+                    }`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-600">Total Entries</span>
+                        <span className={`text-sm font-medium transition-colors duration-300 ${
+                          isDarkMode ? "text-gray-400" : "text-gray-600"
+                        }`}>Total Entries</span>
                         <span className="text-lg">📝</span>
                       </div>
-                      <p className="text-2xl font-bold text-blue-600">{journalStats.totalEntries}</p>
+                      <p className={`text-2xl font-bold transition-colors duration-300 ${
+                        isDarkMode ? "text-blue-400" : "text-blue-600"
+                      }`}>{journalStats.totalEntries}</p>
                     </div>
                     
-                    <div className="bg-white/80 rounded-lg p-4 border border-indigo-100">
+                    <div className={`rounded-lg p-4 border transition-colors duration-300 ${
+                      isDarkMode
+                        ? "bg-gray-800/50 border-indigo-800"
+                        : "bg-white/80 border-indigo-100"
+                    }`}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-600">Journaling Since</span>
+                        <span className={`text-sm font-medium transition-colors duration-300 ${
+                          isDarkMode ? "text-gray-400" : "text-gray-600"
+                        }`}>Journaling Since</span>
                         <span className="text-lg">📅</span>
                       </div>
-                      <p className="text-2xl font-bold text-pink-600">
+                      <p className={`text-2xl font-bold transition-colors duration-300 ${
+                        isDarkMode ? "text-pink-400" : "text-pink-600"
+                      }`}>
                         {journalStats.journalingSince
                           ? journalStats.journalingSince.toLocaleString("default", { month: "long", year: "numeric" })
                           : "N/A"}
@@ -446,23 +601,43 @@ export default function ProfilePage() {
 
 
            {/* Emotion Graph Section */}
-<div className="mb-8 bg-indigo-50 p-6 rounded-xl border border-indigo-200">
+<div className={`mb-8 p-6 rounded-xl border transition-colors duration-300 ${
+  isDarkMode
+    ? "bg-indigo-900/30 border-indigo-700"
+    : "bg-indigo-50 border-indigo-200"
+}`}>
   {/* Section Title */}
-  <h3 className="text-xl font-semibold text-indigo-900 mb-4">Monthly Emotion Trends</h3>
+  <h3 className={`text-xl font-semibold mb-4 transition-colors duration-300 ${
+    isDarkMode ? "text-indigo-300" : "text-indigo-900"
+  }`}>Monthly Emotion Trends</h3>
 
   {months.length === 0 ? (
     // No data available
-    <div className="bg-white rounded-xl p-6 text-center border border-gray-200 shadow-sm">
+    <div className={`rounded-xl p-6 text-center border shadow-sm transition-colors duration-300 ${
+      isDarkMode
+        ? "bg-gray-800/50 border-gray-700"
+        : "bg-white border-gray-200"
+    }`}>
       <div className="text-4xl mb-2">📊</div>
-      <p className="text-gray-600">No data available yet. Start journaling to see your emotion trends!</p>
+      <p className={`transition-colors duration-300 ${
+        isDarkMode ? "text-gray-400" : "text-gray-600"
+      }`}>No data available yet. Start journaling to see your emotion trends!</p>
     </div>
   ) : (
     // Graph container
-    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+    <div className={`border rounded-xl p-6 shadow-sm transition-colors duration-300 ${
+      isDarkMode
+        ? "bg-gray-800/50 border-gray-700"
+        : "bg-white border-gray-200"
+    }`}>
       {/* Header above chart */}
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-gray-600">Last {monthsWindow.length} months</p>
-        <p className="text-xs text-gray-500">Bar height = total entries</p>
+        <p className={`text-sm transition-colors duration-300 ${
+          isDarkMode ? "text-gray-400" : "text-gray-600"
+        }`}>Last {monthsWindow.length} months</p>
+        <p className={`text-xs transition-colors duration-300 ${
+          isDarkMode ? "text-gray-500" : "text-gray-500"
+        }`}>Bar height = total entries</p>
       </div>
 
       {/* SVG Chart */}
@@ -470,16 +645,16 @@ export default function ProfilePage() {
         <svg viewBox="0 0 360 224" className="w-full h-full">
           {/* Chart background gradient */}
           <defs>
-            <linearGradient id="chart-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#eef2ff" />
-              <stop offset="100%" stopColor="#ffe4f1" />
+            <linearGradient id={`chart-bg-${isDarkMode ? 'dark' : 'light'}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={isDarkMode ? "#1e1b4b" : "#eef2ff"} />
+              <stop offset="100%" stopColor={isDarkMode ? "#581c87" : "#ffe4f1"} />
             </linearGradient>
           </defs>
-          <rect x="0" y="0" width="360" height="224" fill="url(#chart-bg)" />
+          <rect x="0" y="0" width="360" height="224" fill={`url(#chart-bg-${isDarkMode ? 'dark' : 'light'})`} />
 
           {/* Axes */}
-          <line x1="24" y1="200" x2="356" y2="200" stroke="#cbd5e1" strokeWidth="1" />
-          <line x1="24" y1="16" x2="24" y2="200" stroke="#cbd5e1" strokeWidth="1" />
+          <line x1="24" y1="200" x2="356" y2="200" stroke={isDarkMode ? "#4b5563" : "#cbd5e1"} strokeWidth="1" />
+          <line x1="24" y1="16" x2="24" y2="200" stroke={isDarkMode ? "#4b5563" : "#cbd5e1"} strokeWidth="1" />
 
           {/* Gradients per month */}
           {monthsWindow.map((m, i) => {
@@ -523,14 +698,14 @@ export default function ProfilePage() {
             if (!total) {
               return (
                 <g key={`bar-${i}`}>
-                  <line x1={x + barWidth / 2 - 6} y1={200} x2={x + barWidth / 2 + 6} y2={200} stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" />
+                  <line x1={x + barWidth / 2 - 6} y1={200} x2={x + barWidth / 2 + 6} y2={200} stroke={isDarkMode ? "#4b5563" : "#cbd5e1"} strokeWidth="2" strokeLinecap="round" />
                 </g>
               );
             }
             return (
               <g key={`bar-${i}`}>
-                <rect x={x} y={y} width={barWidth} height={h} rx="8" fill={`url(#bar-grad-${i})`} stroke="#e5e7eb" strokeWidth="1" />
-                <rect x={x} y={y} width={barWidth} height={h} rx="8" fill="transparent" stroke="rgba(79,70,229,0.12)" strokeWidth="2" />
+                <rect x={x} y={y} width={barWidth} height={h} rx="8" fill={`url(#bar-grad-${i})`} stroke={isDarkMode ? "#374151" : "#e5e7eb"} strokeWidth="1" />
+                <rect x={x} y={y} width={barWidth} height={h} rx="8" fill="transparent" stroke={isDarkMode ? "rgba(129,140,248,0.2)" : "rgba(79,70,229,0.12)"} strokeWidth="2" />
               </g>
             );
           })}
@@ -542,7 +717,7 @@ export default function ProfilePage() {
             const [yStr, mo] = m.split('-');
             const lbl = new Date(parseInt(yStr), parseInt(mo) - 1).toLocaleString('default', { month: 'short' });
             return (
-              <text key={`lbl-${i}`} x={cx} y={215} textAnchor="middle" fontSize="10" fill="#374151">{lbl}</text>
+              <text key={`lbl-${i}`} x={cx} y={215} textAnchor="middle" fontSize="10" fill={isDarkMode ? "#9ca3af" : "#374151"}>{lbl}</text>
             );
           })}
         </svg>
@@ -552,8 +727,10 @@ export default function ProfilePage() {
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
         {Object.keys(moodHexColor).map((emotion) => (
           <div key={emotion} className="flex items-center gap-2">
-            <span className="inline-block w-3.5 h-3.5 rounded-full" style={{ backgroundColor: moodHexColor[emotion] }} />
-            <span className="text-xs text-gray-700 truncate">{emotion}</span>
+            <span className="inline-block w-3.5 h-3.5 rounded-full shadow-sm" style={{ backgroundColor: moodHexColor[emotion] }} />
+            <span className={`text-xs truncate transition-colors duration-300 ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}>{emotion}</span>
           </div>
         ))}
       </div>
@@ -573,7 +750,9 @@ export default function ProfilePage() {
           onClick={() => setShowAvoidedFoodsModal(false)}
         >
           <div 
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col"
+            className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col transition-colors duration-300 ${
+              isDarkMode ? "bg-gray-800" : "bg-white"
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 flex items-center justify-between">
@@ -586,28 +765,48 @@ export default function ProfilePage() {
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto flex-1">
+            <div className={`p-6 overflow-y-auto flex-1 transition-colors duration-300 ${
+              isDarkMode ? "bg-gray-800" : "bg-white"
+            }`}>
               {avoidedFoodsLoading ? (
                 <div className="text-center py-8">
                   <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <p className="text-indigo-600 text-sm mt-2">Loading...</p>
+                  <p className={`text-sm mt-2 transition-colors duration-300 ${
+                    isDarkMode ? "text-indigo-400" : "text-indigo-600"
+                  }`}>Loading...</p>
                 </div>
               ) : avoidedFoods.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">You haven&apos;t marked any foods to avoid yet.</p>
-                  <p className="text-sm text-gray-500 mt-2">When you avoid a food suggestion in the calendar, it will appear here.</p>
+                  <p className={`transition-colors duration-300 ${
+                    isDarkMode ? "text-gray-400" : "text-gray-600"
+                  }`}>You haven&apos;t marked any foods to avoid yet.</p>
+                  <p className={`text-sm mt-2 transition-colors duration-300 ${
+                    isDarkMode ? "text-gray-500" : "text-gray-500"
+                  }`}>When you avoid a food suggestion in the calendar, it will appear here.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {avoidedFoods.map((food) => (
-                    <div key={food.id} className="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div key={food.id} className={`flex items-center justify-between p-4 border rounded-lg transition-colors duration-300 ${
+                      isDarkMode
+                        ? "bg-gray-700/50 border-gray-600"
+                        : "bg-gray-50 border-gray-200"
+                    }`}>
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <span className="text-indigo-600 text-sm">🍽️</span>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                          isDarkMode ? "bg-indigo-800/50" : "bg-indigo-100"
+                        }`}>
+                          <span className={`text-sm transition-colors duration-300 ${
+                            isDarkMode ? "text-indigo-400" : "text-indigo-600"
+                          }`}>🍽️</span>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-800">{food.food}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className={`font-medium transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-200" : "text-gray-800"
+                          }`}>{food.food}</p>
+                          <p className={`text-xs transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-500" : "text-gray-500"
+                          }`}>
                             Added on {new Date(food.avoidedAt).toLocaleDateString()}
                           </p>
                         </div>
@@ -615,7 +814,11 @@ export default function ProfilePage() {
                       <button
                         onClick={() => handleRemoveAvoidedFood(food.id, food.food)}
                         disabled={removingFood === food.id}
-                        className="px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                          isDarkMode
+                            ? "bg-green-800/50 hover:bg-green-700/50 text-green-300"
+                            : "bg-green-100 hover:bg-green-200 text-green-700"
+                        }`}
                       >
                         {removingFood === food.id ? (
                           <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div>
@@ -632,7 +835,11 @@ export default function ProfilePage() {
               )}
             </div>
             
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className={`px-6 py-4 border-t transition-colors duration-300 ${
+              isDarkMode
+                ? "border-gray-700 bg-gray-800"
+                : "border-gray-200 bg-gray-50"
+            }`}>
               <button
                 onClick={() => setShowAvoidedFoodsModal(false)}
                 className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"

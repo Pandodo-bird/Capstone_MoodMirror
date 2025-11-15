@@ -80,7 +80,62 @@ export default function CalendarPage() {
   const [selectedDateEntries, setSelectedDateEntries] = useState<Array<{ entryId: number; mood: string; text: string; polishedReflection?: string; rawReflection?: string; detectedEmotion?: string; flaggedWord?: string | null }>>([]);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [monthlyEmotions, setMonthlyEmotions] = useState<{[month: string]: {[emotion: string]: number}}>({});
+  // Initialize dark mode from localStorage immediately (with SSR check)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const savedDarkMode = localStorage.getItem('moodmirror-dark-mode');
+      return savedDarkMode === 'true';
+    }
+    return false;
+  });
   const router = useRouter();
+
+  // Save dark mode preference to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('moodmirror-dark-mode', isDarkMode.toString());
+    }
+  }, [isDarkMode]);
+
+  // Sync dark mode state with localStorage on visibility change (handles navigation)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const syncDarkMode = () => {
+        const savedDarkMode = localStorage.getItem('moodmirror-dark-mode');
+        if (savedDarkMode !== null) {
+          const shouldBeDark = savedDarkMode === 'true';
+          if (shouldBeDark !== isDarkMode) {
+            setIsDarkMode(shouldBeDark);
+          }
+        }
+      };
+
+      // Sync when page becomes visible (handles navigation back to the page)
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          syncDarkMode();
+        }
+      };
+      
+      // Sync on storage change (if changed in another tab)
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'moodmirror-dark-mode' && e.newValue !== null) {
+          setIsDarkMode(e.newValue === 'true');
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('storage', handleStorageChange);
+
+      // Sync on mount (in case component was cached)
+      syncDarkMode();
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('storage', handleStorageChange);
+      };
+    }
+  }, [isDarkMode]);
 
   // Watch authentication
   useEffect(() => {
@@ -332,10 +387,16 @@ export default function CalendarPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-300 ${
+      isDarkMode 
+        ? "bg-gradient-to-br from-gray-900 via-indigo-950 to-purple-950" 
+        : "bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50"
+    }`}>
       {/* Background mesh + subtle grid */}
       <div
-       className="pointer-events-none absolute inset-0 opacity-90"
+       className={`pointer-events-none absolute inset-0 opacity-90 transition-opacity duration-300 ${
+         isDarkMode ? "opacity-30" : "opacity-90"
+       }`}
        style={{
          backgroundImage:
            "radial-gradient(60rem 60rem at 10% -10%, rgba(129, 140, 248, 0.45), transparent 50%)," +
@@ -346,10 +407,12 @@ export default function CalendarPage() {
        }}
      />
      <div
-       className="pointer-events-none absolute inset-0"
+       className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+         isDarkMode ? "opacity-20" : "opacity-100"
+       }`}
        style={{
          backgroundImage:
-           "linear-gradient(rgba(0,0,0,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.07) 1px, transparent 1px)",
+           `linear-gradient(${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)"} 1px, transparent 1px), linear-gradient(90deg, ${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)"} 1px, transparent 1px)`,
          backgroundSize: "24px 24px, 24px 24px",
          backgroundPosition: "-1px -1px",
         }}
@@ -371,6 +434,22 @@ export default function CalendarPage() {
                 <span className="opacity-90">Welcome</span>
                 <span className="font-semibold text-white/95">{displayName || user.email}</span>
               </span>
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg font-medium transition-all duration-200 backdrop-blur-sm border border-white/30 shadow-sm flex items-center justify-center"
+                title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {isDarkMode ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )}
+              </button>
               <button
                 onClick={() => router.push("/journal")}
                 className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-medium transition-all duration-200 backdrop-blur-sm border border-white/30 shadow-sm"
@@ -426,7 +505,11 @@ export default function CalendarPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar Section - Takes 2 columns */}
           <div className="lg:col-span-2">
-            <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
+            <div className={`backdrop-blur-xl rounded-3xl shadow-2xl border overflow-hidden transition-colors duration-300 ${
+              isDarkMode 
+                ? "bg-gray-800/90 border-gray-700/60" 
+                : "bg-white/85 border-white/60"
+            }`}>
           {/* Calendar Header */}
           <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-5 rounded-2xl shadow-lg relative">
   {/* Month Navigation */}
@@ -510,7 +593,11 @@ export default function CalendarPage() {
             {/* Weekday Headers */}
             <div className="grid grid-cols-7 gap-2 mb-3">
               {weekdayNames.map((day) => (
-                <div key={day} className="text-center font-bold text-gray-700 text-xs uppercase tracking-wider py-1.5 bg-gradient-to-br from-white to-indigo-50 rounded-lg border border-gray-200 shadow-sm">
+                <div key={day} className={`text-center font-bold text-xs uppercase tracking-wider py-1.5 rounded-lg border shadow-sm transition-colors duration-300 ${
+                  isDarkMode
+                    ? "text-gray-300 bg-gradient-to-br from-gray-700 to-gray-800 border-gray-600"
+                    : "text-gray-700 bg-gradient-to-br from-white to-indigo-50 border-gray-200"
+                }`}>
                   {day}
                 </div>
               ))}
@@ -534,21 +621,27 @@ export default function CalendarPage() {
                 return (
                   <button
                     key={day}
-                    className={`group relative h-20 rounded-xl transition-all duration-300 flex flex-col items-start justify-start p-2.5
-                      ${isFuture ? "opacity-50 cursor-not-allowed" : hasEntries ? "transform hover:scale-[1.02] hover:shadow-lg cursor-pointer" : "cursor-default hover:bg-indigo-100/50"}
-                      bg-gradient-to-br from-indigo-50 to-pink-50 border-2 border-indigo-200 hover:border-indigo-300
-                      ${isToday ? "ring-2 ring-indigo-400 ring-offset-1 bg-indigo-100/30" : ""}`}
+                    className={`group relative h-20 rounded-xl transition-all duration-300 flex flex-col items-start justify-start p-2.5 border-2
+                      ${isFuture ? "opacity-50 cursor-not-allowed" : hasEntries ? "transform hover:scale-[1.02] hover:shadow-lg cursor-pointer" : "cursor-default"}
+                      ${isDarkMode
+                        ? `bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-gray-600 ${!isFuture && !hasEntries ? "hover:bg-gray-700/50" : ""} ${isToday ? "ring-2 ring-indigo-500 ring-offset-1 bg-indigo-900/30" : ""}`
+                        : `bg-gradient-to-br from-indigo-50 to-pink-50 border-indigo-200 hover:border-indigo-300 ${!isFuture && !hasEntries ? "hover:bg-indigo-100/50" : ""} ${isToday ? "ring-2 ring-indigo-400 ring-offset-1 bg-indigo-100/30" : ""}`
+                      }`}
                     onClick={() => { if (!isFuture && hasEntries) handleDayClick(day); }}
                   >
                     {/* Date number */}
                     <div className="w-full flex items-start justify-between mb-1.5">
-                      <span className={`font-bold text-base leading-none ${
-                        isToday ? "text-indigo-700" : "text-gray-800"
+                      <span className={`font-bold text-base leading-none transition-colors duration-300 ${
+                        isToday 
+                          ? isDarkMode ? "text-indigo-400" : "text-indigo-700"
+                          : isDarkMode ? "text-gray-200" : "text-gray-800"
                       }`}>
                         {day}
                       </span>
                       {isToday && (
-                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                        <div className={`w-2 h-2 rounded-full animate-pulse ${
+                          isDarkMode ? "bg-indigo-400" : "bg-indigo-500"
+                        }`}></div>
                       )}
                     </div>
                     
@@ -567,7 +660,9 @@ export default function CalendarPage() {
                           );
                         })}
                         {dateEntries.length > 3 && (
-                          <span className="text-[9px] font-semibold text-gray-600 ml-0.5 leading-none">+{dateEntries.length - 3}</span>
+                          <span className={`text-[9px] font-semibold ml-0.5 leading-none transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-400" : "text-gray-600"
+                          }`}>+{dateEntries.length - 3}</span>
                         )}
                       </div>
                     ) : (
@@ -583,7 +678,11 @@ export default function CalendarPage() {
 
           {/* Monthly Emotion Trends Section - Takes 1 column */}
           <div className="lg:col-span-1">
-            <div className="bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
+            <div className={`backdrop-blur-xl rounded-3xl shadow-2xl border overflow-hidden transition-colors duration-300 ${
+              isDarkMode 
+                ? "bg-gray-800/90 border-gray-700/60" 
+                : "bg-white/85 border-white/60"
+            }`}>
               {/* Section Header */}
               <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-5 rounded-t-3xl">
                 <h3 className="text-xl font-bold text-white">Monthly Emotion Trends</h3>
@@ -591,7 +690,9 @@ export default function CalendarPage() {
               </div>
 
               {/* Graph Content */}
-              <div className="p-6">
+              <div className={`p-6 transition-colors duration-300 ${
+                isDarkMode ? "bg-gray-800/50" : ""
+              }`}>
                 {(() => {
                   // Build last 5 months
                   const buildLastNMonths = (n: number) => {
@@ -630,16 +731,16 @@ export default function CalendarPage() {
                       <div className="relative h-48 w-full mb-4">
                         <svg viewBox="0 0 360 192" className="w-full h-full">
                           <defs>
-                            <linearGradient id="chart-bg-small" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#eef2ff" />
-                              <stop offset="100%" stopColor="#ffe4f1" />
+                            <linearGradient id={`chart-bg-small-${isDarkMode ? 'dark' : 'light'}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor={isDarkMode ? "#1e1b4b" : "#eef2ff"} />
+                              <stop offset="100%" stopColor={isDarkMode ? "#581c87" : "#ffe4f1"} />
                             </linearGradient>
                           </defs>
-                          <rect x="0" y="0" width="360" height="192" fill="url(#chart-bg-small)" />
+                          <rect x="0" y="0" width="360" height="192" fill={`url(#chart-bg-small-${isDarkMode ? 'dark' : 'light'})`} />
 
                           {/* Axes */}
-                          <line x1="20" y1="172" x2="340" y2="172" stroke="#cbd5e1" strokeWidth="1" />
-                          <line x1="20" y1="12" x2="20" y2="172" stroke="#cbd5e1" strokeWidth="1" />
+                          <line x1="20" y1="172" x2="340" y2="172" stroke={isDarkMode ? "#4b5563" : "#cbd5e1"} strokeWidth="1" />
+                          <line x1="20" y1="12" x2="20" y2="172" stroke={isDarkMode ? "#4b5563" : "#cbd5e1"} strokeWidth="1" />
 
                           {/* Gradients per month */}
                           {monthsWindow.map((m, i) => {
@@ -683,14 +784,14 @@ export default function CalendarPage() {
                             if (!total) {
                               return (
                                 <g key={`bar-small-${i}`}>
-                                  <line x1={x + barWidth / 2 - 4} y1={172} x2={x + barWidth / 2 + 4} y2={172} stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" />
+                                  <line x1={x + barWidth / 2 - 4} y1={172} x2={x + barWidth / 2 + 4} y2={172} stroke={isDarkMode ? "#4b5563" : "#cbd5e1"} strokeWidth="2" strokeLinecap="round" />
                                 </g>
                               );
                             }
                             return (
                               <g key={`bar-small-${i}`}>
-                                <rect x={x} y={y} width={barWidth} height={h} rx="6" fill={`url(#bar-grad-small-${i})`} stroke="#e5e7eb" strokeWidth="1" />
-                                <rect x={x} y={y} width={barWidth} height={h} rx="6" fill="transparent" stroke="rgba(79,70,229,0.12)" strokeWidth="2" />
+                                <rect x={x} y={y} width={barWidth} height={h} rx="6" fill={`url(#bar-grad-small-${i})`} stroke={isDarkMode ? "#374151" : "#e5e7eb"} strokeWidth="1" />
+                                <rect x={x} y={y} width={barWidth} height={h} rx="6" fill="transparent" stroke={isDarkMode ? "rgba(129,140,248,0.2)" : "rgba(79,70,229,0.12)"} strokeWidth="2" />
                               </g>
                             );
                           })}
@@ -702,7 +803,7 @@ export default function CalendarPage() {
                             const [yStr, mo] = m.split('-');
                             const lbl = new Date(parseInt(yStr), parseInt(mo) - 1).toLocaleString('default', { month: 'short' });
                             return (
-                              <text key={`lbl-small-${i}`} x={cx} y={188} textAnchor="middle" fontSize="9" fill="#374151">{lbl}</text>
+                              <text key={`lbl-small-${i}`} x={cx} y={188} textAnchor="middle" fontSize="9" fill={isDarkMode ? "#9ca3af" : "#374151"}>{lbl}</text>
                             );
                           })}
                         </svg>
@@ -712,8 +813,10 @@ export default function CalendarPage() {
                       <div className="grid grid-cols-2 gap-1.5">
                         {Object.keys(moodHexColor).map((emotion) => (
                           <div key={emotion} className="flex items-center gap-1.5">
-                            <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: moodHexColor[emotion] }} />
-                            <span className="text-xs text-gray-700 truncate">{emotion}</span>
+                            <span className="inline-block w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: moodHexColor[emotion] }} />
+                            <span className={`text-xs truncate transition-colors duration-300 ${
+                              isDarkMode ? "text-gray-300" : "text-gray-700"
+                            }`}>{emotion}</span>
                           </div>
                         ))}
                       </div>
@@ -724,7 +827,11 @@ export default function CalendarPage() {
             </div>
 
             {/* Quick Stats & Insights Card */}
-            <div className="mt-6 bg-white/85 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
+            <div className={`mt-6 backdrop-blur-xl rounded-3xl shadow-2xl border overflow-hidden transition-colors duration-300 ${
+              isDarkMode 
+                ? "bg-gray-800/90 border-gray-700/60" 
+                : "bg-white/85 border-white/60"
+            }`}>
               {/* Section Header */}
               <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-4 py-3 rounded-t-3xl">
                 <h3 className="text-lg font-bold text-white">Quick Stats & Insights</h3>
@@ -799,12 +906,22 @@ export default function CalendarPage() {
                   return (
                     <div className="space-y-2.5">
                       {/* This Month's Entries */}
-                      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-2.5 border border-indigo-200 shadow-sm">
+                      <div className={`rounded-lg p-2.5 border shadow-sm transition-colors duration-300 ${
+                        isDarkMode
+                          ? "bg-gradient-to-br from-indigo-900/50 to-purple-900/50 border-indigo-700"
+                          : "bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200"
+                      }`}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-[10px] font-medium text-gray-600 mb-0.5">This Month</p>
-                            <p className="text-lg font-bold text-indigo-900">{thisMonthEntriesCount}</p>
-                            <p className="text-[10px] text-gray-500">entries</p>
+                            <p className={`text-[10px] font-medium mb-0.5 transition-colors duration-300 ${
+                              isDarkMode ? "text-gray-400" : "text-gray-600"
+                            }`}>This Month</p>
+                            <p className={`text-lg font-bold transition-colors duration-300 ${
+                              isDarkMode ? "text-indigo-300" : "text-indigo-900"
+                            }`}>{thisMonthEntriesCount}</p>
+                            <p className={`text-[10px] transition-colors duration-300 ${
+                              isDarkMode ? "text-gray-500" : "text-gray-500"
+                            }`}>entries</p>
                           </div>
                           <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
                             <span className="text-base">📊</span>
@@ -814,19 +931,29 @@ export default function CalendarPage() {
 
                       {/* Most Common Mood */}
                       {mostCommonMood && mostCommonMoodInfo && (
-                        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg p-2.5 border border-yellow-200 shadow-sm">
+                        <div className={`rounded-lg p-2.5 border shadow-sm transition-colors duration-300 ${
+                          isDarkMode
+                            ? "bg-gradient-to-br from-yellow-900/50 to-orange-900/50 border-yellow-700"
+                            : "bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200"
+                        }`}>
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="text-[10px] font-medium text-gray-600 mb-0.5">Most Common</p>
+                              <p className={`text-[10px] font-medium mb-0.5 transition-colors duration-300 ${
+                                isDarkMode ? "text-gray-400" : "text-gray-600"
+                              }`}>Most Common</p>
                               <div className="flex items-center gap-1.5">
                                 <span className="text-base">{mostCommonMoodInfo.icon}</span>
                                 <span className={`font-bold text-sm ${mostCommonMoodInfo.textColor}`}>
                                   {mostCommonMoodInfo.shortName}
                                 </span>
                               </div>
-                              <p className="text-[10px] text-gray-500 mt-0.5">{mostCommonMood[1]}x</p>
+                              <p className={`text-[10px] mt-0.5 transition-colors duration-300 ${
+                                isDarkMode ? "text-gray-400" : "text-gray-500"
+                              }`}>{mostCommonMood[1]}x</p>
                             </div>
-                            <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                              isDarkMode ? "bg-yellow-900/50" : "bg-yellow-100"
+                            }`}>
                               <span className="text-base">⭐</span>
                             </div>
                           </div>
@@ -835,13 +962,23 @@ export default function CalendarPage() {
 
                       {/* This Week Summary */}
                       {thisWeekEntries.length > 0 && (
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-2.5 border border-green-200 shadow-sm">
+                        <div className={`rounded-lg p-2.5 border shadow-sm transition-colors duration-300 ${
+                          isDarkMode
+                            ? "bg-gradient-to-br from-green-900/50 to-emerald-900/50 border-green-700"
+                            : "bg-gradient-to-br from-green-50 to-emerald-50 border-green-200"
+                        }`}>
                           <div className="flex items-center justify-between mb-2">
                             <div>
-                              <p className="text-[10px] font-medium text-gray-600 mb-0.5">This Week</p>
-                              <p className="text-sm font-bold text-green-900">{thisWeekEntries.length} entries</p>
+                              <p className={`text-[10px] font-medium mb-0.5 transition-colors duration-300 ${
+                                isDarkMode ? "text-gray-400" : "text-gray-600"
+                              }`}>This Week</p>
+                              <p className={`text-sm font-bold transition-colors duration-300 ${
+                                isDarkMode ? "text-green-300" : "text-green-900"
+                              }`}>{thisWeekEntries.length} entries</p>
                             </div>
-                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                              isDarkMode ? "bg-green-900/50" : "bg-green-100"
+                            }`}>
                               <span className="text-base">📅</span>
                             </div>
                           </div>
@@ -864,14 +1001,22 @@ export default function CalendarPage() {
 
                       {/* Mood Balance */}
                       {totalMoodEntries > 0 && (
-                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-2.5 border border-blue-200 shadow-sm">
-                          <p className="text-[10px] font-medium text-gray-600 mb-2">Mood Balance</p>
+                        <div className={`rounded-lg p-2.5 border shadow-sm transition-colors duration-300 ${
+                          isDarkMode
+                            ? "bg-gradient-to-br from-blue-900/50 to-cyan-900/50 border-blue-700"
+                            : "bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200"
+                        }`}>
+                          <p className={`text-[10px] font-medium mb-2 transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-400" : "text-gray-600"
+                          }`}>Mood Balance</p>
                           <div className="space-y-1.5">
                             <div className="flex items-center justify-between text-[10px]">
                               <span className="text-green-700 font-medium">✨ Uplifting</span>
                               <span className="text-green-700 font-bold">{positivePercentage}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div className={`w-full rounded-full h-2 overflow-hidden transition-colors duration-300 ${
+                              isDarkMode ? "bg-gray-700" : "bg-gray-200"
+                            }`}>
                               <div 
                                 className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-500"
                                 style={{ width: `${positivePercentage}%` }}
@@ -881,7 +1026,9 @@ export default function CalendarPage() {
                               <span className="text-red-700 font-medium">😴 Draining</span>
                               <span className="text-red-700 font-bold">{negativePercentage}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div className={`w-full rounded-full h-2 overflow-hidden transition-colors duration-300 ${
+                              isDarkMode ? "bg-gray-700" : "bg-gray-200"
+                            }`}>
                               <div 
                                 className="bg-gradient-to-r from-red-400 to-orange-500 h-2 rounded-full transition-all duration-500"
                                 style={{ width: `${negativePercentage}%` }}
@@ -894,10 +1041,16 @@ export default function CalendarPage() {
                       {/* Empty State */}
                       {thisMonthEntriesCount === 0 && (
                         <div className="text-center py-4">
-                          <p className="text-gray-500 text-xs mb-1.5">No entries this month</p>
+                          <p className={`text-xs mb-1.5 transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-400" : "text-gray-500"
+                          }`}>No entries this month</p>
                           <button
                             onClick={() => router.push("/journal")}
-                            className="text-indigo-600 hover:text-indigo-700 text-xs font-medium underline"
+                            className={`text-xs font-medium underline transition-colors duration-300 ${
+                              isDarkMode 
+                                ? "text-indigo-400 hover:text-indigo-300" 
+                                : "text-indigo-600 hover:text-indigo-700"
+                            }`}
                           >
                             Start your first entry →
                           </button>
@@ -915,7 +1068,11 @@ export default function CalendarPage() {
       {/* Preview Modal - Read Only */}
       {showModal && (
         <div className="fixed inset-0 flex items-start justify-center bg-black/60 backdrop-blur-sm z-50 p-2 sm:p-6 overflow-y-auto">
-          <div className="bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl shadow-[0_24px_60px_-15px_rgba(79,70,229,0.5)] w-full max-w-3xl max-h-[96vh] transform transition-all duration-300 scale-100 flex flex-col my-3 sm:my-10">
+          <div className={`backdrop-blur-xl border rounded-3xl shadow-[0_24px_60px_-15px_rgba(79,70,229,0.5)] w-full max-w-3xl max-h-[96vh] transform transition-all duration-300 scale-100 flex flex-col my-3 sm:my-10 ${
+            isDarkMode
+              ? "bg-gray-800/95 border-gray-700/60"
+              : "bg-white/95 border-white/60"
+          }`}>
             {/* Modal Header */}
             <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 px-6 sm:px-8 py-5 sm:py-6 rounded-t-3xl relative overflow-hidden">
               <div className="absolute inset-0 opacity-20">
@@ -948,23 +1105,37 @@ export default function CalendarPage() {
             </div>
 
             {/* Modal Body - Read Only */}
-            <div className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-indigo-50/30">
+            <div className={`flex-1 overflow-y-auto transition-colors duration-300 ${
+              isDarkMode
+                ? "bg-gradient-to-br from-gray-900 to-indigo-950/30"
+                : "bg-gradient-to-br from-gray-50 to-indigo-50/30"
+            }`}>
               {selectedDateEntries.length === 0 ? (
                 <div className="p-8 sm:p-12 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                    isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                  }`}>
                     <span className="text-3xl">📝</span>
                   </div>
-                  <p className="text-gray-600 text-base font-medium mb-2">
+                  <p className={`text-base font-medium mb-2 transition-colors duration-300 ${
+                    isDarkMode ? "text-gray-300" : "text-gray-600"
+                  }`}>
                     No entries found for this date.
                   </p>
-                  <p className="text-gray-500 text-sm">
+                  <p className={`text-sm transition-colors duration-300 ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}>
                     Start journaling to see your entries here!
                   </p>
                 </div>
               ) : (
                 <>
                   {/* Tabs with Emotion Dots */}
-                  <div className="bg-white border-b border-gray-200 px-4 sm:px-6 pt-4 sticky top-0 z-10">
+                  <div className={`border-b px-4 sm:px-6 pt-4 sticky top-0 z-10 transition-colors duration-300 ${
+                    isDarkMode
+                      ? "bg-gray-800 border-gray-700"
+                      : "bg-white border-gray-200"
+                  }`}>
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       {selectedDateEntries.map((entry, index) => {
                         const entryMood = entry.mood && !entry.flaggedWord ? entry.mood : null;
@@ -977,8 +1148,12 @@ export default function CalendarPage() {
                             onClick={() => setActiveTab(index)}
                             className={`px-4 py-2.5 font-medium text-sm rounded-t-xl transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
                               activeTab === index
-                                ? "bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-700 border-t-2 border-l-2 border-r-2 border-indigo-200 shadow-sm -mb-px"
-                                : "text-gray-600 hover:text-indigo-600 hover:bg-gray-50"
+                                ? isDarkMode
+                                  ? "bg-gradient-to-br from-indigo-900/50 to-purple-900/50 text-indigo-300 border-t-2 border-l-2 border-r-2 border-indigo-700 shadow-sm -mb-px"
+                                  : "bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-700 border-t-2 border-l-2 border-r-2 border-indigo-200 shadow-sm -mb-px"
+                                : isDarkMode
+                                  ? "text-gray-400 hover:text-indigo-400 hover:bg-gray-700/50"
+                                  : "text-gray-600 hover:text-indigo-600 hover:bg-gray-50"
                             }`}
                           >
                             <div className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/50`} />
@@ -1003,7 +1178,9 @@ export default function CalendarPage() {
                       return (
                         <div className="space-y-6">
                           {/* Entry Header with Dot and Mood */}
-                          <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+                          <div className={`flex items-center gap-3 pb-4 border-b transition-colors duration-300 ${
+                            isDarkMode ? "border-gray-700" : "border-gray-200"
+                          }`}>
                             <div className={`w-4 h-4 rounded-full ${dotColor} shadow-sm border border-white/50`} />
                             {moodInfo && (
                               <div className={`inline-flex items-center px-4 py-2 rounded-xl ${moodInfo.bgColor} ${moodInfo.borderColor} border-2 shadow-sm`}>
@@ -1013,19 +1190,29 @@ export default function CalendarPage() {
                                 </span>
                               </div>
                             )}
-                            <div className="ml-auto text-xs text-gray-500">
+                            <div className={`ml-auto text-xs transition-colors duration-300 ${
+                              isDarkMode ? "text-gray-400" : "text-gray-500"
+                            }`}>
                               Entry {activeTab + 1} of {selectedDateEntries.length}
                             </div>
                           </div>
 
                           {/* Flagged Content Warning */}
                           {entry.flaggedWord && (
-                            <div className="p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-sm">
+                            <div className={`p-5 border-2 rounded-xl shadow-sm transition-colors duration-300 ${
+                              isDarkMode
+                                ? "bg-red-900/30 border-red-700"
+                                : "bg-red-50 border-red-300"
+                            }`}>
                               <div className="flex items-start gap-3">
                                 <span className="text-2xl flex-shrink-0">⚠️</span>
                                 <div className="flex-1">
-                                  <h4 className="text-red-800 font-bold text-sm mb-1">Content Flagged</h4>
-                                  <p className="text-red-700 font-medium text-sm">
+                                  <h4 className={`font-bold text-sm mb-1 transition-colors duration-300 ${
+                                    isDarkMode ? "text-red-300" : "text-red-800"
+                                  }`}>Content Flagged</h4>
+                                  <p className={`font-medium text-sm transition-colors duration-300 ${
+                                    isDarkMode ? "text-red-200" : "text-red-700"
+                                  }`}>
                                     Flagged word: <span className="font-bold">&quot;{entry.flaggedWord}&quot;</span>
                                   </p>
                                 </div>
@@ -1035,12 +1222,20 @@ export default function CalendarPage() {
 
                           {/* Journal Text */}
                           {entry.text && (
-                            <div className="bg-white rounded-xl p-5 sm:p-6 border-2 border-indigo-100 shadow-sm">
+                            <div className={`rounded-xl p-5 sm:p-6 border-2 shadow-sm transition-colors duration-300 ${
+                              isDarkMode
+                                ? "bg-gray-800 border-indigo-800"
+                                : "bg-white border-indigo-100"
+                            }`}>
                               <div className="flex items-center gap-2 mb-3">
                                 <span className="text-xl">💭</span>
-                                <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wide">Your Thoughts</h4>
+                                <h4 className={`font-bold text-sm uppercase tracking-wide transition-colors duration-300 ${
+                                  isDarkMode ? "text-gray-200" : "text-gray-800"
+                                }`}>Your Thoughts</h4>
                               </div>
-                              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                              <p className={`leading-relaxed whitespace-pre-wrap break-words transition-colors duration-300 ${
+                                isDarkMode ? "text-gray-300" : "text-gray-700"
+                              }`}>
                                 {entry.text}
                               </p>
                             </div>
@@ -1048,24 +1243,40 @@ export default function CalendarPage() {
 
                           {/* AI Reflection */}
                           {entry.flaggedWord && entry.rawReflection && (
-                            <div className="p-5 border-2 border-red-200 rounded-xl bg-red-50 shadow-sm">
+                            <div className={`p-5 border-2 rounded-xl shadow-sm transition-colors duration-300 ${
+                              isDarkMode
+                                ? "bg-red-900/30 border-red-700"
+                                : "bg-red-50 border-red-200"
+                            }`}>
                               <div className="flex items-center gap-2 mb-3">
                                 <span className="text-xl">🤖</span>
-                                <h4 className="font-bold text-red-800 text-sm uppercase tracking-wide">AI Message</h4>
+                                <h4 className={`font-bold text-sm uppercase tracking-wide transition-colors duration-300 ${
+                                  isDarkMode ? "text-red-300" : "text-red-800"
+                                }`}>AI Message</h4>
                               </div>
-                              <p className="text-red-900 leading-relaxed break-words">
+                              <p className={`leading-relaxed break-words transition-colors duration-300 ${
+                                isDarkMode ? "text-red-200" : "text-red-900"
+                              }`}>
                                 {entry.rawReflection}
                               </p>
                             </div>
                           )}
 
                           {!entry.flaggedWord && entry.polishedReflection && (
-                            <div className="p-5 border-2 border-purple-200 rounded-xl bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 shadow-sm">
+                            <div className={`p-5 border-2 rounded-xl shadow-sm transition-colors duration-300 ${
+                              isDarkMode
+                                ? "bg-gradient-to-br from-purple-900/30 via-indigo-900/30 to-pink-900/30 border-purple-700"
+                                : "bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 border-purple-200"
+                            }`}>
                               <div className="flex items-center gap-2 mb-3">
                                 <span className="text-xl">✨</span>
-                                <h4 className="font-bold text-purple-800 text-sm uppercase tracking-wide">AI Reflection</h4>
+                                <h4 className={`font-bold text-sm uppercase tracking-wide transition-colors duration-300 ${
+                                  isDarkMode ? "text-purple-300" : "text-purple-800"
+                                }`}>AI Reflection</h4>
                               </div>
-                              <p className="text-gray-900 leading-relaxed break-words">
+                              <p className={`leading-relaxed break-words transition-colors duration-300 ${
+                                isDarkMode ? "text-gray-200" : "text-gray-900"
+                              }`}>
                                 {entry.polishedReflection}
                               </p>
                             </div>

@@ -236,7 +236,62 @@ export default function JournalPage() {
   const [avoidingFood, setAvoidingFood] = useState<{ entryId: number; food: string } | null>(null);
   const [expandedEntryId, setExpandedEntryId] = useState<number | null>(null);
   const [savedEntryIds, setSavedEntryIds] = useState<Set<number>>(new Set());
+  // Initialize dark mode from localStorage immediately (with SSR check)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const savedDarkMode = localStorage.getItem('moodmirror-dark-mode');
+      return savedDarkMode === 'true';
+    }
+    return false;
+  });
   const router = useRouter();
+
+  // Save dark mode preference to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('moodmirror-dark-mode', isDarkMode.toString());
+    }
+  }, [isDarkMode]);
+
+  // Sync dark mode state with localStorage on visibility change (handles navigation)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const syncDarkMode = () => {
+        const savedDarkMode = localStorage.getItem('moodmirror-dark-mode');
+        if (savedDarkMode !== null) {
+          const shouldBeDark = savedDarkMode === 'true';
+          if (shouldBeDark !== isDarkMode) {
+            setIsDarkMode(shouldBeDark);
+          }
+        }
+      };
+
+      // Sync when page becomes visible (handles navigation back to the page)
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          syncDarkMode();
+        }
+      };
+      
+      // Sync on storage change (if changed in another tab)
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'moodmirror-dark-mode' && e.newValue !== null) {
+          setIsDarkMode(e.newValue === 'true');
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('storage', handleStorageChange);
+
+      // Sync on mount (in case component was cached)
+      syncDarkMode();
+
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('storage', handleStorageChange);
+      };
+    }
+  }, [isDarkMode]);
 
   // Get today's date string
   const today = new Date();
@@ -689,10 +744,16 @@ export default function JournalPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-300 ${
+      isDarkMode 
+        ? "bg-gradient-to-br from-gray-900 via-indigo-950 to-purple-950" 
+        : "bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50"
+    }`}>
       {/* Background mesh + subtle grid */}
       <div
-       className="pointer-events-none absolute inset-0 opacity-90"
+       className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+         isDarkMode ? "opacity-30" : "opacity-90"
+       }`}
        style={{
          backgroundImage:
            "radial-gradient(60rem 60rem at 10% -10%, rgba(129, 140, 248, 0.45), transparent 50%)," +
@@ -703,10 +764,12 @@ export default function JournalPage() {
        }}
      />
      <div
-       className="pointer-events-none absolute inset-0"
+       className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+         isDarkMode ? "opacity-20" : "opacity-100"
+       }`}
        style={{
          backgroundImage:
-           "linear-gradient(rgba(0,0,0,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.07) 1px, transparent 1px)",
+           `linear-gradient(${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)"} 1px, transparent 1px), linear-gradient(90deg, ${isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.07)"} 1px, transparent 1px)`,
          backgroundSize: "24px 24px, 24px 24px",
          backgroundPosition: "-1px -1px",
         }}
@@ -728,6 +791,22 @@ export default function JournalPage() {
                 <span className="opacity-90">Welcome</span>
                 <span className="font-semibold text-white/95">{displayName || user.email}</span>
               </span>
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg font-medium transition-all duration-200 backdrop-blur-sm border border-white/30 shadow-sm flex items-center justify-center"
+                title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {isDarkMode ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                )}
+              </button>
               <button
                 onClick={() => router.push("/calendar")}
                 className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg font-medium transition-all duration-200 backdrop-blur-sm border border-white/30 shadow-sm"
@@ -818,7 +897,11 @@ export default function JournalPage() {
           </div>
         )}
 
-        <div className="bg-white/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
+        <div className={`backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border overflow-hidden transition-colors duration-300 ${
+          isDarkMode 
+            ? "bg-gray-800/90 border-gray-700/60" 
+            : "bg-white/90 border-white/60"
+        }`}>
           {/* Page Header */}
           <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 px-6 sm:px-8 py-6 sm:py-7 rounded-t-2xl sm:rounded-t-3xl shadow-lg relative overflow-hidden">
             <div className="absolute inset-0 opacity-20">
@@ -859,12 +942,24 @@ export default function JournalPage() {
           <div className="p-5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
             {/* Motivational Message */}
             {entries.length === 0 || entries.every(e => !e.text.trim()) ? (
-              <div className="text-center py-8 sm:py-12 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-xl border-2 border-dashed border-indigo-200">
-                <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
+              <div className={`text-center py-8 sm:py-12 rounded-xl border-2 border-dashed transition-colors duration-300 ${
+                isDarkMode
+                  ? "bg-gradient-to-br from-indigo-900/30 via-purple-900/30 to-pink-900/30 border-indigo-700"
+                  : "bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-indigo-200"
+              }`}>
+                <div className={`w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                  isDarkMode
+                    ? "bg-gradient-to-br from-indigo-800/50 to-purple-800/50"
+                    : "bg-gradient-to-br from-indigo-100 to-purple-100"
+                }`}>
                   <span className="text-4xl">💭</span>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Start Your Journey</h3>
-                <p className="text-gray-600 text-sm sm:text-base max-w-md mx-auto">
+                <h3 className={`text-xl sm:text-2xl font-bold mb-2 transition-colors duration-300 ${
+                  isDarkMode ? "text-gray-200" : "text-gray-800"
+                }`}>Start Your Journey</h3>
+                <p className={`text-sm sm:text-base max-w-md mx-auto transition-colors duration-300 ${
+                  isDarkMode ? "text-gray-400" : "text-gray-600"
+                }`}>
                   Take a moment to reflect on your day. Your thoughts matter, and every entry helps you understand yourself better.
                 </p>
               </div>
@@ -885,7 +980,11 @@ export default function JournalPage() {
                   <div 
                     key={entry.id} 
                     onClick={() => setExpandedEntryId(entry.id)}
-                    className="group bg-gradient-to-br from-white via-indigo-50/40 to-purple-50/30 rounded-xl sm:rounded-2xl border-2 border-indigo-200 shadow-md p-4 sm:p-5 cursor-pointer hover:shadow-xl hover:border-indigo-300 transition-all duration-300 hover:-translate-y-0.5"
+                    className={`group rounded-xl sm:rounded-2xl border-2 shadow-md p-4 sm:p-5 cursor-pointer transition-all duration-300 hover:-translate-y-0.5 ${
+                      isDarkMode
+                        ? "bg-gradient-to-br from-gray-800 via-indigo-900/30 to-purple-900/30 border-indigo-700 hover:shadow-xl hover:border-indigo-600"
+                        : "bg-gradient-to-br from-white via-indigo-50/40 to-purple-50/30 border-indigo-200 hover:shadow-xl hover:border-indigo-300"
+                    }`}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
@@ -893,7 +992,9 @@ export default function JournalPage() {
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
                             <span className="text-sm font-bold text-indigo-700">#{entryIndex + 1}</span>
                           </div>
-                          <h3 className="text-base sm:text-lg font-bold text-indigo-900">
+                          <h3 className={`text-base sm:text-lg font-bold transition-colors duration-300 ${
+                            isDarkMode ? "text-indigo-300" : "text-indigo-900"
+                          }`}>
                             Entry {entryIndex + 1}
                           </h3>
                           {entry.detectedMood && moodConfig[entry.detectedMood as keyof typeof moodConfig] && (
@@ -910,10 +1011,14 @@ export default function JournalPage() {
                             </span>
                           </div>
                         </div>
-                        <p className="text-gray-700 text-sm sm:text-base line-clamp-2 font-medium mb-2">
+                        <p className={`text-sm sm:text-base line-clamp-2 font-medium mb-2 transition-colors duration-300 ${
+                          isDarkMode ? "text-gray-300" : "text-gray-700"
+                        }`}>
                           {entry.text || "No text entered"}
                         </p>
-                        <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-500">
+                        <div className={`flex items-center gap-4 text-xs sm:text-sm transition-colors duration-300 ${
+                          isDarkMode ? "text-gray-400" : "text-gray-500"
+                        }`}>
                           {entry.foodSuggestions.length > 0 && (
                             <span className="flex items-center gap-1.5">
                               <span>🥗</span>
@@ -928,7 +1033,11 @@ export default function JournalPage() {
                           )}
                         </div>
                       </div>
-                      <div className="ml-4 text-gray-400 group-hover:text-indigo-500 transition-colors">
+                      <div className={`ml-4 transition-colors ${
+                        isDarkMode 
+                          ? "text-gray-500 group-hover:text-indigo-400" 
+                          : "text-gray-400 group-hover:text-indigo-500"
+                      }`}>
                         <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -940,7 +1049,11 @@ export default function JournalPage() {
 
               // Full expanded view
               return (
-                <div key={entry.id} className="bg-gradient-to-br from-white via-indigo-50/40 to-purple-50/30 rounded-xl sm:rounded-2xl border-2 border-indigo-200 shadow-xl p-5 sm:p-6 lg:p-7">
+                <div key={entry.id} className={`rounded-xl sm:rounded-2xl border-2 shadow-xl p-5 sm:p-6 lg:p-7 transition-colors duration-300 ${
+                  isDarkMode
+                    ? "bg-gradient-to-br from-gray-800 via-indigo-900/30 to-purple-900/30 border-indigo-700"
+                    : "bg-gradient-to-br from-white via-indigo-50/40 to-purple-50/30 border-indigo-200"
+                }`}>
                   {/* Entry Header */}
                   <div className="flex justify-between items-start mb-4 sm:mb-5">
                     <div className="flex items-center gap-3">
@@ -948,7 +1061,9 @@ export default function JournalPage() {
                         <span className="text-lg font-bold text-indigo-700">#{entryIndex + 1}</span>
                       </div>
                       <div>
-                        <h3 className="text-xl sm:text-2xl font-extrabold text-indigo-900">
+                        <h3 className={`text-xl sm:text-2xl font-extrabold transition-colors duration-300 ${
+                          isDarkMode ? "text-indigo-300" : "text-indigo-900"
+                        }`}>
                           Entry {entryIndex + 1}
                         </h3>
                         {isSaved && (
@@ -966,7 +1081,11 @@ export default function JournalPage() {
                         onClick={() => {
                           setExpandedEntryId(null);
                         }}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:shadow"
+                        className={`px-3 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:shadow ${
+                          isDarkMode
+                            ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                            : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                        }`}
                         title="Collapse entry"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -992,19 +1111,31 @@ export default function JournalPage() {
 
                   {/* Flagged Content Warning */}
                   {entry.flaggedWord && (
-                    <div className="mb-4 p-3 sm:p-4 bg-red-50 border-2 border-red-300 rounded-lg sm:rounded-xl shadow-md">
+                    <div className={`mb-4 p-3 sm:p-4 border-2 rounded-lg sm:rounded-xl shadow-md transition-colors duration-300 ${
+                      isDarkMode
+                        ? "bg-red-900/30 border-red-700"
+                        : "bg-red-50 border-red-300"
+                    }`}>
                       <div className="flex items-start gap-2 sm:gap-3">
                         <div className="flex-shrink-0">
                           <span className="text-2xl sm:text-3xl">⚠️</span>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-bold text-base sm:text-lg text-red-800 mb-1.5">
+                          <h3 className={`font-bold text-base sm:text-lg mb-1.5 transition-colors duration-300 ${
+                            isDarkMode ? "text-red-300" : "text-red-800"
+                          }`}>
                             Content Flagged
                           </h3>
-                          <p className="text-red-700 font-medium text-sm mb-1">
-                            Your entry contains flagged content: <span className="font-bold bg-red-100 px-1.5 py-0.5 rounded">&quot;{entry.flaggedWord}&quot;</span>
+                          <p className={`font-medium text-sm mb-1 transition-colors duration-300 ${
+                            isDarkMode ? "text-red-200" : "text-red-700"
+                          }`}>
+                            Your entry contains flagged content: <span className={`font-bold px-1.5 py-0.5 rounded transition-colors duration-300 ${
+                              isDarkMode ? "bg-red-800/50" : "bg-red-100"
+                            }`}>&quot;{entry.flaggedWord}&quot;</span>
                           </p>
-                          <p className="text-red-600 text-xs sm:text-sm mt-1.5">
+                          <p className={`text-xs sm:text-sm mt-1.5 transition-colors duration-300 ${
+                            isDarkMode ? "text-red-300" : "text-red-600"
+                          }`}>
                             Please revise your entry to remove inappropriate content. The entry was not saved to your journal.
                           </p>
                         </div>
@@ -1014,7 +1145,9 @@ export default function JournalPage() {
 
                   {/* User's Text Input - First Section */}
                   <div className="mb-5 sm:mb-6">
-                    <label className="block mb-2.5 text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <label className={`block mb-2.5 text-base sm:text-lg font-bold flex items-center gap-2 transition-colors duration-300 ${
+                      isDarkMode ? "text-gray-200" : "text-gray-800"
+                    }`}>
                       <span className="text-2xl">💭</span>
                       <span>What&apos;s on your mind today?</span>
                     </label>
@@ -1022,10 +1155,14 @@ export default function JournalPage() {
                       <textarea
                         ref={entry.textareaRef}
                         readOnly={isSaved}
-                        className={`w-full p-4 sm:p-5 border-2 rounded-xl sm:rounded-2xl text-gray-800 transition-all duration-200 resize-none shadow-md min-h-[120px] sm:min-h-[140px] text-sm sm:text-base leading-relaxed ${
+                        className={`w-full p-4 sm:p-5 border-2 rounded-xl sm:rounded-2xl transition-all duration-200 resize-none shadow-md min-h-[120px] sm:min-h-[140px] text-sm sm:text-base leading-relaxed ${
                           isSaved 
-                            ? "border-gray-300 bg-gray-50 cursor-not-allowed opacity-75" 
-                            : "border-indigo-200 bg-white hover:shadow-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500"
+                            ? isDarkMode
+                              ? "border-gray-600 bg-gray-700/50 cursor-not-allowed opacity-75 text-gray-400"
+                              : "border-gray-300 bg-gray-50 cursor-not-allowed opacity-75 text-gray-800"
+                            : isDarkMode
+                              ? "border-indigo-700 bg-gray-800 text-gray-200 hover:shadow-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                              : "border-indigo-200 bg-white text-gray-800 hover:shadow-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500"
                         }`}
                         style={{ 
                           height: 'auto',
@@ -1050,7 +1187,9 @@ export default function JournalPage() {
                         }}
                       />
                       {entry.text && (
-                        <div className="absolute bottom-3 right-3 text-xs text-gray-400 font-medium">
+                        <div className={`absolute bottom-3 right-3 text-xs font-medium transition-colors duration-300 ${
+                          isDarkMode ? "text-gray-500" : "text-gray-400"
+                        }`}>
                           {entry.text.length} characters
                         </div>
                       )}
@@ -1060,29 +1199,43 @@ export default function JournalPage() {
                   {/* Divider - Only show if there's AI feedback */}
                   {!entry.flaggedWord && (entry.detectedMood || entry.polishedReflection || entry.foodSuggestions.length > 0 || entry.reflectionLoading) && (
                     <div className="mb-4">
-                      <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+                      <div className={`h-px w-full bg-gradient-to-r from-transparent to-transparent transition-colors duration-300 ${
+                        isDarkMode ? "via-gray-600" : "via-gray-300"
+                      }`}></div>
                     </div>
                   )}
 
                   {/* AI Feedback Section - Grouped Together */}
                   {!entry.flaggedWord && (entry.detectedMood || entry.polishedReflection || entry.foodSuggestions.length > 0 || entry.reflectionLoading) && (
                     <div className="mb-5 sm:mb-6">
-                      <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-indigo-200">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                      <div className={`flex items-center gap-3 mb-4 pb-3 border-b-2 transition-colors duration-300 ${
+                        isDarkMode ? "border-indigo-700" : "border-indigo-200"
+                      }`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-300 ${
+                          isDarkMode
+                            ? "bg-gradient-to-br from-purple-800/50 to-pink-800/50"
+                            : "bg-gradient-to-br from-purple-100 to-pink-100"
+                        }`}>
                           <span className="text-2xl">✨</span>
                         </div>
                         <div>
-                          <h3 className="text-lg sm:text-xl font-extrabold text-gray-800">
+                          <h3 className={`text-lg sm:text-xl font-extrabold transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-200" : "text-gray-800"
+                          }`}>
                             AI Insights
                           </h3>
-                          <p className="text-xs sm:text-sm text-gray-500">Personalized feedback just for you</p>
+                          <p className={`text-xs sm:text-sm transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-400" : "text-gray-500"
+                          }`}>Personalized feedback just for you</p>
                         </div>
                       </div>
 
                       {/* Detected Emotion */}
                       {entry.detectedMood && moodConfig[entry.detectedMood as keyof typeof moodConfig] && (
                         <div className="mb-4 sm:mb-5">
-                          <label className="block mb-2.5 text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
+                          <label className={`block mb-2.5 text-sm sm:text-base font-semibold flex items-center gap-2 transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}>
                             <span>🎯</span>
                             <span>Detected Mood</span>
                           </label>
@@ -1100,19 +1253,35 @@ export default function JournalPage() {
                       {/* AI Reflection */}
                       {(entry.rawReflection || entry.polishedReflection || entry.reflectionLoading) && (
                         <div className="mb-4 sm:mb-5">
-                          <label className="block mb-2.5 text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
+                          <label className={`block mb-2.5 text-sm sm:text-base font-semibold flex items-center gap-2 transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}>
                             <span>💡</span>
                             <span>AI Reflection</span>
                           </label>
                           {entry.reflectionLoading ? (
-                            <div className="text-center py-6 sm:py-8 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl sm:rounded-2xl border-2 border-purple-200 shadow-sm">
+                            <div className={`text-center py-6 sm:py-8 rounded-xl sm:rounded-2xl border-2 shadow-sm transition-colors duration-300 ${
+                              isDarkMode
+                                ? "bg-gradient-to-br from-purple-900/30 to-indigo-900/30 border-purple-700"
+                                : "bg-gradient-to-br from-purple-50 to-indigo-50 border-purple-200"
+                            }`}>
                               <div className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                              <p className="text-purple-700 text-sm sm:text-base font-medium">Analyzing your thoughts...</p>
-                              <p className="text-purple-600 text-xs sm:text-sm mt-1">This may take a few seconds</p>
+                              <p className={`text-sm sm:text-base font-medium transition-colors duration-300 ${
+                                isDarkMode ? "text-purple-300" : "text-purple-700"
+                              }`}>Analyzing your thoughts...</p>
+                              <p className={`text-xs sm:text-sm mt-1 transition-colors duration-300 ${
+                                isDarkMode ? "text-purple-400" : "text-purple-600"
+                              }`}>This may take a few seconds</p>
                             </div>
                           ) : (
-                            <div className="p-4 sm:p-5 border-2 border-purple-200 rounded-xl sm:rounded-2xl shadow-md bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50">
-                              <p className="text-gray-900 leading-relaxed text-sm sm:text-base font-medium break-words">
+                            <div className={`p-4 sm:p-5 border-2 rounded-xl sm:rounded-2xl shadow-md transition-colors duration-300 ${
+                              isDarkMode
+                                ? "border-purple-700 bg-gradient-to-br from-purple-900/30 via-indigo-900/30 to-pink-900/30"
+                                : "border-purple-200 bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50"
+                            }`}>
+                              <p className={`leading-relaxed text-sm sm:text-base font-medium break-words transition-colors duration-300 ${
+                                isDarkMode ? "text-gray-200" : "text-gray-900"
+                              }`}>
                                 {entry.polishedReflection}
                               </p>
                             </div>
@@ -1123,29 +1292,49 @@ export default function JournalPage() {
                       {/* Food Suggestions */}
                       {entry.detectedMood && (
                         <div>
-                          <label className="block mb-3 text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
+                          <label className={`block mb-3 text-sm sm:text-base font-semibold flex items-center gap-2 transition-colors duration-300 ${
+                            isDarkMode ? "text-gray-300" : "text-gray-700"
+                          }`}>
                             <span>🥗</span>
                             <span>Personalized Food Suggestions</span>
                           </label>
                           {entry.reflectionLoading ? (
-                            <div className="text-center py-6 sm:py-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-xl sm:rounded-2xl border-2 border-indigo-200 shadow-sm">
+                            <div className={`text-center py-6 sm:py-8 rounded-xl sm:rounded-2xl border-2 shadow-sm transition-colors duration-300 ${
+                              isDarkMode
+                                ? "bg-gradient-to-br from-indigo-900/30 via-purple-900/30 to-pink-900/30 border-indigo-700"
+                                : "bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-indigo-200"
+                            }`}>
                               <div className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                              <p className="text-indigo-700 font-semibold text-sm sm:text-base mt-2">Crafting personalized suggestions...</p>
-                              <p className="text-indigo-600 text-xs sm:text-sm mt-1">Matching foods to your mood</p>
+                              <p className={`font-semibold text-sm sm:text-base mt-2 transition-colors duration-300 ${
+                                isDarkMode ? "text-indigo-300" : "text-indigo-700"
+                              }`}>Crafting personalized suggestions...</p>
+                              <p className={`text-xs sm:text-sm mt-1 transition-colors duration-300 ${
+                                isDarkMode ? "text-indigo-400" : "text-indigo-600"
+                              }`}>Matching foods to your mood</p>
                             </div>
                           ) : entry.foodSuggestions.length === 0 ? (
-                            <div className="text-center py-6 sm:py-8 bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 rounded-xl sm:rounded-2xl border-2 border-gray-200 shadow-sm">
-                              <div className="w-16 h-16 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                            <div className={`text-center py-6 sm:py-8 rounded-xl sm:rounded-2xl border-2 shadow-sm transition-colors duration-300 ${
+                              isDarkMode
+                                ? "bg-gradient-to-br from-gray-800/50 via-indigo-900/30 to-purple-900/30 border-gray-700"
+                                : "bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 border-gray-200"
+                            }`}>
+                              <div className={`w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                                isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                              }`}>
                                 <span className="text-3xl">🍽️</span>
                               </div>
-                              <p className="text-gray-700 font-medium text-sm sm:text-base mb-2">
+                              <p className={`font-medium text-sm sm:text-base mb-2 transition-colors duration-300 ${
+                                isDarkMode ? "text-gray-300" : "text-gray-700"
+                              }`}>
                                 {avoidedFoods.size > 0 
                                   ? "All food suggestions have been avoided. Remove some avoided foods from your profile to see more suggestions."
                                   : "No food suggestions available yet. Save your entry to generate suggestions."
                                 }
                               </p>
                               {avoidedFoods.size > 0 && (
-                                <p className="text-xs sm:text-sm text-gray-500 mt-2 px-3 py-1 bg-gray-100 rounded-full inline-block">
+                                <p className={`text-xs sm:text-sm mt-2 px-3 py-1 rounded-full inline-block transition-colors duration-300 ${
+                                  isDarkMode ? "text-gray-400 bg-gray-700" : "text-gray-500 bg-gray-100"
+                                }`}>
                                   You have {avoidedFoods.size} avoided food{avoidedFoods.size > 1 ? 's' : ''}
                                 </p>
                               )}
@@ -1155,32 +1344,54 @@ export default function JournalPage() {
                               {entry.foodSuggestions.map((suggestion, index) => (
                                 <div 
                                   key={index} 
-                                  className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-200 rounded-xl sm:rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden hover:-translate-y-0.5"
+                                  className={`border-2 rounded-xl sm:rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden hover:-translate-y-0.5 ${
+                                    isDarkMode
+                                      ? "bg-gradient-to-br from-indigo-900/30 via-purple-900/30 to-pink-900/30 border-indigo-700"
+                                      : "bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-indigo-200"
+                                  }`}
                                 >
                                   <button
                                     onClick={() => updateEntry(entry.id, { expandedFoodIndex: entry.expandedFoodIndex === index ? null : index })}
-                                    className="w-full flex justify-between items-center p-4 sm:p-5 hover:bg-white/60 transition-colors duration-200"
+                                    className={`w-full flex justify-between items-center p-4 sm:p-5 transition-colors duration-200 ${
+                                      isDarkMode ? "hover:bg-gray-700/60" : "hover:bg-white/60"
+                                    }`}
                                   >
                                     <div className="flex items-center gap-3 sm:gap-4 flex-1 text-left">
-                                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-sm">
+                                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm transition-colors duration-300 ${
+                                        isDarkMode
+                                          ? "bg-gradient-to-br from-indigo-800/50 to-purple-800/50"
+                                          : "bg-gradient-to-br from-indigo-100 to-purple-100"
+                                      }`}>
                                         <span className="text-2xl sm:text-3xl">🍴</span>
                                       </div>
                                       <div>
-                                        <span className="font-bold text-base sm:text-lg text-indigo-900 block">{suggestion.name}</span>
-                                        <span className="text-xs sm:text-sm text-gray-500">Tap to see why this helps</span>
+                                        <span className={`font-bold text-base sm:text-lg block transition-colors duration-300 ${
+                                          isDarkMode ? "text-indigo-300" : "text-indigo-900"
+                                        }`}>{suggestion.name}</span>
+                                        <span className={`text-xs sm:text-sm transition-colors duration-300 ${
+                                          isDarkMode ? "text-gray-400" : "text-gray-500"
+                                        }`}>Tap to see why this helps</span>
                                       </div>
                                     </div>
                                     <div className={`transform transition-transform duration-300 ${entry.expandedFoodIndex === index ? 'rotate-180' : ''}`}>
-                                      <svg className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <svg className={`w-6 h-6 sm:w-7 sm:h-7 transition-colors duration-300 ${
+                                        isDarkMode ? "text-indigo-400" : "text-indigo-600"
+                                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                                       </svg>
                                     </div>
                                   </button>
                                   
                                   {entry.expandedFoodIndex === index && (
-                                    <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t-2 border-indigo-200/50 bg-white/70 animate-in slide-in-from-top-2 duration-300">
+                                    <div className={`px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t-2 animate-in slide-in-from-top-2 duration-300 transition-colors duration-300 ${
+                                      isDarkMode
+                                        ? "border-indigo-700/50 bg-gray-800/70"
+                                        : "border-indigo-200/50 bg-white/70"
+                                    }`}>
                                       <div className="mb-4">
-                                        <p className="text-sm sm:text-base text-gray-800 leading-relaxed font-medium">
+                                        <p className={`text-sm sm:text-base leading-relaxed font-medium transition-colors duration-300 ${
+                                          isDarkMode ? "text-gray-200" : "text-gray-800"
+                                        }`}>
                                           {suggestion.reason}
                                         </p>
                                       </div>
@@ -1217,18 +1428,28 @@ export default function JournalPage() {
 
                 {/* Status Messages */}
                 {entry.entryError && (
-                  <div className="mb-3 p-2.5 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs sm:text-sm">
+                  <div className={`mb-3 p-2.5 sm:p-3 border rounded-lg text-xs sm:text-sm transition-colors duration-300 ${
+                    isDarkMode
+                      ? "bg-red-900/30 border-red-700 text-red-300"
+                      : "bg-red-50 border-red-200 text-red-700"
+                  }`}>
                     ⚠️ {entry.entryError}
                   </div>
                 )}
                 {entry.entrySuccess && (
-                  <div className="mb-3 p-2.5 sm:p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-xs sm:text-sm">
+                  <div className={`mb-3 p-2.5 sm:p-3 border rounded-lg text-xs sm:text-sm transition-colors duration-300 ${
+                    isDarkMode
+                      ? "bg-green-900/30 border-green-700 text-green-300"
+                      : "bg-green-50 border-green-200 text-green-700"
+                  }`}>
                     ✅ {entry.entrySuccess}
                   </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t-2 border-gray-200">
+                <div className={`mt-5 sm:mt-6 pt-5 sm:pt-6 border-t-2 transition-colors duration-300 ${
+                  isDarkMode ? "border-gray-700" : "border-gray-200"
+                }`}>
                   {isSaved ? (
                     <button
                       className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold transition-all duration-200 shadow-xl text-base sm:text-lg cursor-default"
