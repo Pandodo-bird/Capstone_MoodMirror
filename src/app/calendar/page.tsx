@@ -879,7 +879,7 @@ export default function CalendarPage() {
                           <p className="text-[10px] font-medium text-gray-600 mb-2">Mood Balance</p>
                           <div className="space-y-1.5">
                             <div className="flex items-center justify-between text-[10px]">
-                              <span className="text-green-700 font-medium">😊 Positive</span>
+                              <span className="text-green-700 font-medium">✨ Uplifting</span>
                               <span className="text-green-700 font-bold">{positivePercentage}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
@@ -889,7 +889,7 @@ export default function CalendarPage() {
                               />
                             </div>
                             <div className="flex items-center justify-between text-[10px]">
-                              <span className="text-red-700 font-medium">😔 Challenging</span>
+                              <span className="text-red-700 font-medium">😴 Draining</span>
                               <span className="text-red-700 font-bold">{negativePercentage}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">

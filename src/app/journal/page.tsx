@@ -743,26 +743,104 @@ export default function JournalPage() {
       </div>
 
       {/* Main Content Container */}
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+      <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Ambient gradient blobs */}
         <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
           <div className="absolute right-[-120px] top-0 w-72 h-72 bg-gradient-to-br from-pink-300/40 to-indigo-300/40 rounded-full blur-3xl animate-pulse" />
           <div className="absolute left-[-120px] bottom-0 w-72 h-72 bg-gradient-to-br from-purple-300/40 to-yellow-300/40 rounded-full blur-3xl animate-pulse" />
         </div>
         
-        <div className="bg-white/85 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
+        {/* Today's Stats Card */}
+        {entries.length > 0 && (
+          <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-4 shadow-lg border border-indigo-400/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-indigo-100 text-xs font-medium mb-1">Today's Entries</p>
+                  <p className="text-3xl font-bold text-white">{entries.filter(e => e.text.trim()).length}</p>
+                </div>
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-2xl">📝</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-4 shadow-lg border border-purple-400/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-xs font-medium mb-1">Moods Detected</p>
+                  <p className="text-3xl font-bold text-white">{new Set(entries.filter(e => e.detectedMood).map(e => e.detectedMood)).size}</p>
+                </div>
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-2xl">😊</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl p-4 shadow-lg border border-pink-400/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-pink-100 text-xs font-medium mb-1">Food Suggestions</p>
+                  <p className="text-3xl font-bold text-white">{entries.reduce((sum, e) => sum + e.foodSuggestions.length, 0)}</p>
+                </div>
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-2xl">🥗</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-white/60 overflow-hidden">
           {/* Page Header */}
-          <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-5 sm:px-6 py-4 sm:py-5 rounded-t-2xl sm:rounded-t-3xl shadow-lg relative">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-wide">
-              Journal Entry for Today
-            </h2>
-            <p className="text-indigo-100 text-xs sm:text-sm mt-1">
-              {todayStr}
-            </p>
+          <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 px-6 sm:px-8 py-6 sm:py-7 rounded-t-2xl sm:rounded-t-3xl shadow-lg relative overflow-hidden">
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/30 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/20 rounded-full blur-3xl" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                      <span className="text-2xl">✨</span>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+                        Today's Reflection
+                      </h2>
+                      <p className="text-indigo-100 text-sm sm:text-base mt-1 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path fillRule="evenodd" d="M6.75 2.25A.75.75 0 017.5 3v1.5h9V3A.75.75 0 0118 3v1.5h.75a3 3 0 013 3v11.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V8.25a3 3 0 013-3H6V3a.75.75 0 01.75-.75zm13.5 9a1.5 1.5 0 00-1.5-1.5H5.25a1.5 1.5 0 00-1.5 1.5v7.5a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5v-7.5z" clipRule="evenodd" />
+                        </svg>
+                        {todayStr}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {entries.filter(e => e.text.trim()).length > 0 && (
+                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30">
+                    <span className="text-white/90 text-sm font-medium">Great progress!</span>
+                    <span className="text-2xl">🎉</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Content */}
-          <div className="p-4 sm:p-5 space-y-4">
+          <div className="p-5 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
+            {/* Motivational Message */}
+            {entries.length === 0 || entries.every(e => !e.text.trim()) ? (
+              <div className="text-center py-8 sm:py-12 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-xl border-2 border-dashed border-indigo-200">
+                <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
+                  <span className="text-4xl">💭</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Start Your Journey</h3>
+                <p className="text-gray-600 text-sm sm:text-base max-w-md mx-auto">
+                  Take a moment to reflect on your day. Your thoughts matter, and every entry helps you understand yourself better.
+                </p>
+              </div>
+            ) : null}
+
             {/* Render each entry */}
             {entries.map((entry, entryIndex) => {
               const isExpanded = expandedEntryId === entry.id;
@@ -778,34 +856,51 @@ export default function JournalPage() {
                   <div 
                     key={entry.id} 
                     onClick={() => setExpandedEntryId(entry.id)}
-                    className="bg-gradient-to-br from-white to-indigo-50/30 rounded-xl sm:rounded-2xl border-2 border-indigo-100 shadow-md p-3 sm:p-4 cursor-pointer hover:shadow-lg transition-all duration-200"
+                    className="group bg-gradient-to-br from-white via-indigo-50/40 to-purple-50/30 rounded-xl sm:rounded-2xl border-2 border-indigo-200 shadow-md p-4 sm:p-5 cursor-pointer hover:shadow-xl hover:border-indigo-300 transition-all duration-300 hover:-translate-y-0.5"
                   >
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 sm:gap-3 mb-1.5">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center">
+                            <span className="text-sm font-bold text-indigo-700">#{entryIndex + 1}</span>
+                          </div>
                           <h3 className="text-base sm:text-lg font-bold text-indigo-900">
                             Entry {entryIndex + 1}
                           </h3>
                           {entry.detectedMood && moodConfig[entry.detectedMood as keyof typeof moodConfig] && (
-                            <div className={`inline-flex items-center px-2 sm:px-3 py-0.5 sm:py-1 rounded-lg ${moodConfig[entry.detectedMood as keyof typeof moodConfig].bgColor} ${moodConfig[entry.detectedMood as keyof typeof moodConfig].borderColor} border`}>
-                              <span className="text-base sm:text-lg mr-0.5 sm:mr-1">{moodConfig[entry.detectedMood as keyof typeof moodConfig].icon}</span>
-                              <span className={`text-xs font-semibold ${moodConfig[entry.detectedMood as keyof typeof moodConfig].textColor}`}>
+                            <div className={`inline-flex items-center px-3 sm:px-4 py-1 sm:py-1.5 rounded-lg ${moodConfig[entry.detectedMood as keyof typeof moodConfig].bgColor} ${moodConfig[entry.detectedMood as keyof typeof moodConfig].borderColor} border-2 shadow-sm`}>
+                              <span className="text-lg sm:text-xl mr-1.5">{moodConfig[entry.detectedMood as keyof typeof moodConfig].icon}</span>
+                              <span className={`text-xs sm:text-sm font-bold ${moodConfig[entry.detectedMood as keyof typeof moodConfig].textColor}`}>
                                 {moodConfig[entry.detectedMood as keyof typeof moodConfig].shortName}
                               </span>
                             </div>
                           )}
+                          <div className="ml-auto flex items-center gap-2">
+                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full border border-green-200">
+                              ✓ Saved
+                            </span>
+                          </div>
                         </div>
-                        <p className="text-gray-600 text-xs sm:text-sm line-clamp-2">
+                        <p className="text-gray-700 text-sm sm:text-base line-clamp-2 font-medium mb-2">
                           {entry.text || "No text entered"}
                         </p>
-                        {entry.foodSuggestions.length > 0 && (
-                          <p className="text-xs text-indigo-600 mt-1.5">
-                            {entry.foodSuggestions.length} food suggestion{entry.foodSuggestions.length !== 1 ? 's' : ''}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-500">
+                          {entry.foodSuggestions.length > 0 && (
+                            <span className="flex items-center gap-1.5">
+                              <span>🥗</span>
+                              <span className="font-medium">{entry.foodSuggestions.length} suggestion{entry.foodSuggestions.length !== 1 ? 's' : ''}</span>
+                            </span>
+                          )}
+                          {entry.polishedReflection && (
+                            <span className="flex items-center gap-1.5">
+                              <span>✨</span>
+                              <span className="font-medium">AI Reflection</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="ml-3 sm:ml-4 text-gray-400">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="ml-4 text-gray-400 group-hover:text-indigo-500 transition-colors">
+                        <svg className="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
@@ -816,32 +911,53 @@ export default function JournalPage() {
 
               // Full expanded view
               return (
-                <div key={entry.id} className="bg-gradient-to-br from-white to-indigo-50/30 rounded-xl sm:rounded-2xl border-2 border-indigo-100 shadow-lg p-4 sm:p-5">
+                <div key={entry.id} className="bg-gradient-to-br from-white via-indigo-50/40 to-purple-50/30 rounded-xl sm:rounded-2xl border-2 border-indigo-200 shadow-xl p-5 sm:p-6 lg:p-7">
                   {/* Entry Header */}
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-lg sm:text-xl font-bold text-indigo-900">
-                      Entry {entryIndex + 1}
-                    </h3>
+                  <div className="flex justify-between items-start mb-4 sm:mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-md">
+                        <span className="text-lg font-bold text-indigo-700">#{entryIndex + 1}</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl sm:text-2xl font-extrabold text-indigo-900">
+                          Entry {entryIndex + 1}
+                        </h3>
+                        {isSaved && (
+                          <span className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full border border-green-200">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                              <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+                            </svg>
+                            Saved
+                          </span>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
                       {isSaved && (
                         <button
                           onClick={() => {
                             setExpandedEntryId(null);
                           }}
-                          className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200"
+                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:shadow"
                           title="Collapse entry"
                         >
-                          ↓ Collapse
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                            <path d="M18 15l-6-6-6 6" />
+                          </svg>
+                          Collapse
                         </button>
                       )}
                       {(entry.text || entry.detectedMood || entry.rawDetectedEmotion || entry.rawReflection || entry.polishedReflection) && (
                         <button
                           onClick={() => setShowClearConfirm({ entryId: entry.id })}
-                          className="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200"
+                          className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 flex items-center gap-1.5 shadow-sm hover:shadow"
                           title="Clear this entry"
                           disabled={entry.entryLoading || entry.reflectionLoading || clearLoading}
                         >
-                          🗑️ Clear
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                          </svg>
+                          Clear
                         </button>
                       )}
                     </div>
@@ -870,31 +986,39 @@ export default function JournalPage() {
                   )}
 
                   {/* User's Text Input - First Section */}
-                  <div className="mb-4">
-                    <label className="block mb-1.5 text-sm sm:text-base font-semibold text-gray-700">
-                      What&apos;s on your mind? 👇
+                  <div className="mb-5 sm:mb-6">
+                    <label className="block mb-2.5 text-base sm:text-lg font-bold text-gray-800 flex items-center gap-2">
+                      <span className="text-2xl">💭</span>
+                      <span>What&apos;s on your mind today?</span>
                     </label>
-                    <textarea
-                      ref={entry.textareaRef}
-                      className="w-full p-3 sm:p-4 border-2 border-indigo-200 rounded-lg sm:rounded-xl text-gray-700 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 transition-all duration-200 resize-none bg-white shadow-sm hover:shadow-md min-h-[100px] sm:min-h-[120px] text-sm sm:text-base"
-                      style={{ 
-                        height: 'auto',
-                        minHeight: '100px',
-                      }}
-                      placeholder="Write your thoughts, feelings, or anything you&apos;d like to remember..."
-                      value={entry.text}
-                      onChange={(e) => {
-                        updateEntry(entry.id, { text: e.target.value });
-                        // Auto-resize textarea
-                        e.target.style.height = 'auto';
-                        e.target.style.height = `${Math.max(100, e.target.scrollHeight)}px`;
-                      }}
-                      onInput={(e) => {
-                        const target = e.target as HTMLTextAreaElement;
-                        target.style.height = 'auto';
-                        target.style.height = `${Math.max(100, target.scrollHeight)}px`;
-                      }}
-                    />
+                    <div className="relative">
+                      <textarea
+                        ref={entry.textareaRef}
+                        className="w-full p-4 sm:p-5 border-2 border-indigo-200 rounded-xl sm:rounded-2xl text-gray-800 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 transition-all duration-200 resize-none bg-white shadow-md hover:shadow-lg min-h-[120px] sm:min-h-[140px] text-sm sm:text-base leading-relaxed"
+                        style={{ 
+                          height: 'auto',
+                          minHeight: '120px',
+                        }}
+                        placeholder="Take a moment to reflect... What made you smile today? What challenges did you face? How are you feeling right now?"
+                        value={entry.text}
+                        onChange={(e) => {
+                          updateEntry(entry.id, { text: e.target.value });
+                          // Auto-resize textarea
+                          e.target.style.height = 'auto';
+                          e.target.style.height = `${Math.max(120, e.target.scrollHeight)}px`;
+                        }}
+                        onInput={(e) => {
+                          const target = e.target as HTMLTextAreaElement;
+                          target.style.height = 'auto';
+                          target.style.height = `${Math.max(120, target.scrollHeight)}px`;
+                        }}
+                      />
+                      {entry.text && (
+                        <div className="absolute bottom-3 right-3 text-xs text-gray-400 font-medium">
+                          {entry.text.length} characters
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Divider - Only show if there's AI feedback */}
@@ -906,22 +1030,30 @@ export default function JournalPage() {
 
                   {/* AI Feedback Section - Grouped Together */}
                   {!entry.flaggedWord && (entry.detectedMood || entry.polishedReflection || entry.foodSuggestions.length > 0 || entry.reflectionLoading) && (
-                    <div className="mb-4">
-                      <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <span>✨</span>
-                        <span>MoodMirror&apos;s Feedback</span>
-                      </h3>
+                    <div className="mb-5 sm:mb-6">
+                      <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-indigo-200">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                          <span className="text-2xl">✨</span>
+                        </div>
+                        <div>
+                          <h3 className="text-lg sm:text-xl font-extrabold text-gray-800">
+                            AI Insights
+                          </h3>
+                          <p className="text-xs sm:text-sm text-gray-500">Personalized feedback just for you</p>
+                        </div>
+                      </div>
 
                       {/* Detected Emotion */}
                       {entry.detectedMood && moodConfig[entry.detectedMood as keyof typeof moodConfig] && (
-                        <div className="mb-3">
-                          <label className="block mb-1.5 text-xs sm:text-sm font-medium text-gray-600">
-                            Detected Emotion:
+                        <div className="mb-4 sm:mb-5">
+                          <label className="block mb-2.5 text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
+                            <span>🎯</span>
+                            <span>Detected Mood</span>
                           </label>
                           <div className="flex items-center">
-                            <div className={`inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl ${moodConfig[entry.detectedMood as keyof typeof moodConfig].bgColor} ${moodConfig[entry.detectedMood as keyof typeof moodConfig].borderColor} border-2 shadow-sm`}>
-                              <span className="text-lg sm:text-xl mr-1.5 sm:mr-2">{moodConfig[entry.detectedMood as keyof typeof moodConfig].icon}</span>
-                              <span className={`font-semibold text-sm sm:text-base ${moodConfig[entry.detectedMood as keyof typeof moodConfig].textColor} tracking-wide`}>
+                            <div className={`inline-flex items-center px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl ${moodConfig[entry.detectedMood as keyof typeof moodConfig].bgColor} ${moodConfig[entry.detectedMood as keyof typeof moodConfig].borderColor} border-2 shadow-lg`}>
+                              <span className="text-2xl sm:text-3xl mr-2 sm:mr-3">{moodConfig[entry.detectedMood as keyof typeof moodConfig].icon}</span>
+                              <span className={`font-bold text-base sm:text-lg ${moodConfig[entry.detectedMood as keyof typeof moodConfig].textColor} tracking-wide`}>
                                 {moodConfig[entry.detectedMood as keyof typeof moodConfig].shortName}
                               </span>
                             </div>
@@ -931,17 +1063,19 @@ export default function JournalPage() {
 
                       {/* AI Reflection */}
                       {(entry.rawReflection || entry.polishedReflection || entry.reflectionLoading) && (
-                        <div className="mb-3">
-                          <label className="block mb-1.5 text-xs sm:text-sm font-medium text-gray-600">
-                            AI Reflection:
+                        <div className="mb-4 sm:mb-5">
+                          <label className="block mb-2.5 text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
+                            <span>💡</span>
+                            <span>AI Reflection</span>
                           </label>
                           {entry.reflectionLoading ? (
-                            <div className="text-center py-3 sm:py-4 bg-purple-50 rounded-lg border border-purple-200">
-                              <div className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                              <p className="text-purple-600 text-xs sm:text-sm mt-1.5 sm:mt-2">Generating reflection...</p>
+                            <div className="text-center py-6 sm:py-8 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl sm:rounded-2xl border-2 border-purple-200 shadow-sm">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                              <p className="text-purple-700 text-sm sm:text-base font-medium">Analyzing your thoughts...</p>
+                              <p className="text-purple-600 text-xs sm:text-sm mt-1">This may take a few seconds</p>
                             </div>
                           ) : (
-                            <div className="p-3 sm:p-4 border-2 border-purple-200 rounded-lg shadow-sm bg-gradient-to-br from-purple-50 to-indigo-50">
+                            <div className="p-4 sm:p-5 border-2 border-purple-200 rounded-xl sm:rounded-2xl shadow-md bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50">
                               <p className="text-gray-900 leading-relaxed text-sm sm:text-base font-medium break-words">
                                 {entry.polishedReflection}
                               </p>
@@ -953,69 +1087,83 @@ export default function JournalPage() {
                       {/* Food Suggestions */}
                       {entry.detectedMood && (
                         <div>
-                          <label className="block mb-2 text-xs sm:text-sm font-medium text-gray-600">
-                            Food Suggestions:
+                          <label className="block mb-3 text-sm sm:text-base font-semibold text-gray-700 flex items-center gap-2">
+                            <span>🥗</span>
+                            <span>Personalized Food Suggestions</span>
                           </label>
                           {entry.reflectionLoading ? (
-                            <div className="text-center py-4 sm:py-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg sm:rounded-xl border-2 border-indigo-200">
-                              <div className="w-6 h-6 sm:w-8 sm:h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                              <p className="text-indigo-600 font-medium text-xs sm:text-sm mt-2 sm:mt-3">Generating personalized food suggestions...</p>
+                            <div className="text-center py-6 sm:py-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-xl sm:rounded-2xl border-2 border-indigo-200 shadow-sm">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                              <p className="text-indigo-700 font-semibold text-sm sm:text-base mt-2">Crafting personalized suggestions...</p>
+                              <p className="text-indigo-600 text-xs sm:text-sm mt-1">Matching foods to your mood</p>
                             </div>
                           ) : entry.foodSuggestions.length === 0 ? (
-                            <div className="text-center py-4 sm:py-5 bg-gradient-to-br from-gray-50 to-indigo-50 rounded-lg sm:rounded-xl border-2 border-gray-200">
-                              <p className="text-gray-600 font-medium text-xs sm:text-sm mb-1.5">
+                            <div className="text-center py-6 sm:py-8 bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 rounded-xl sm:rounded-2xl border-2 border-gray-200 shadow-sm">
+                              <div className="w-16 h-16 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                                <span className="text-3xl">🍽️</span>
+                              </div>
+                              <p className="text-gray-700 font-medium text-sm sm:text-base mb-2">
                                 {avoidedFoods.size > 0 
                                   ? "All food suggestions have been avoided. Remove some avoided foods from your profile to see more suggestions."
                                   : "No food suggestions available yet. Save your entry to generate suggestions."
                                 }
                               </p>
                               {avoidedFoods.size > 0 && (
-                                <p className="text-xs text-gray-500 mt-1.5">
+                                <p className="text-xs sm:text-sm text-gray-500 mt-2 px-3 py-1 bg-gray-100 rounded-full inline-block">
                                   You have {avoidedFoods.size} avoided food{avoidedFoods.size > 1 ? 's' : ''}
                                 </p>
                               )}
                             </div>
                           ) : (
-                            <div className="space-y-2 sm:space-y-2.5">
+                            <div className="space-y-3 sm:space-y-3">
                               {entry.foodSuggestions.map((suggestion, index) => (
                                 <div 
                                   key={index} 
-                                  className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-200 rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden"
+                                  className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-200 rounded-xl sm:rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden hover:-translate-y-0.5"
                                 >
                                   <button
                                     onClick={() => updateEntry(entry.id, { expandedFoodIndex: entry.expandedFoodIndex === index ? null : index })}
-                                    className="w-full flex justify-between items-center p-3 sm:p-4 hover:bg-white/50 transition-colors duration-200"
+                                    className="w-full flex justify-between items-center p-4 sm:p-5 hover:bg-white/60 transition-colors duration-200"
                                   >
-                                    <div className="flex items-center gap-2 sm:gap-3 flex-1 text-left">
-                                      <span className="text-xl sm:text-2xl">🍴</span>
-                                      <span className="font-bold text-base sm:text-lg text-indigo-900">{suggestion.name}</span>
+                                    <div className="flex items-center gap-3 sm:gap-4 flex-1 text-left">
+                                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-sm">
+                                        <span className="text-2xl sm:text-3xl">🍴</span>
+                                      </div>
+                                      <div>
+                                        <span className="font-bold text-base sm:text-lg text-indigo-900 block">{suggestion.name}</span>
+                                        <span className="text-xs sm:text-sm text-gray-500">Tap to see why this helps</span>
+                                      </div>
                                     </div>
                                     <div className={`transform transition-transform duration-300 ${entry.expandedFoodIndex === index ? 'rotate-180' : ''}`}>
-                                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                      <svg className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                                       </svg>
                                     </div>
                                   </button>
                                   
                                   {entry.expandedFoodIndex === index && (
-                                    <div className="px-3 sm:px-4 pb-3 sm:pb-4 pt-2 border-t border-indigo-200/50 bg-white/60 animate-in slide-in-from-top-2 duration-300">
-                                      <p className="text-sm sm:text-base text-gray-700 leading-relaxed font-medium mb-3 sm:mb-4">
-                                        {suggestion.reason}
-                                      </p>
+                                    <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t-2 border-indigo-200/50 bg-white/70 animate-in slide-in-from-top-2 duration-300">
+                                      <div className="mb-4">
+                                        <p className="text-sm sm:text-base text-gray-800 leading-relaxed font-medium">
+                                          {suggestion.reason}
+                                        </p>
+                                      </div>
                                       <button
                                         onClick={() => handleAvoidFood(entry.id, suggestion.name)}
                                         disabled={avoidingFood?.entryId === entry.id && avoidingFood?.food === suggestion.name}
-                                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs sm:text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow border border-red-300"
+                                        className="w-full px-4 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md border-2 border-red-300"
                                         title="Don't show this food in future suggestions"
                                       >
                                         {avoidingFood?.entryId === entry.id && avoidingFood?.food === suggestion.name ? (
                                           <>
-                                            <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                                             <span>Processing...</span>
                                           </>
                                         ) : (
                                           <>
-                                            <span>🚫</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                                              <path d="M18 6L6 18M6 6l12 12" />
+                                            </svg>
                                             <span>Remove Suggestion</span>
                                           </>
                                         )}
@@ -1044,30 +1192,38 @@ export default function JournalPage() {
                 )}
 
                 {/* Action Buttons */}
-                <div className="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-gray-200">
+                <div className="mt-5 sm:mt-6 pt-5 sm:pt-6 border-t-2 border-gray-200">
                   {isSaved ? (
                     <button
-                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-200 shadow-lg text-sm sm:text-base cursor-default"
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold transition-all duration-200 shadow-xl text-base sm:text-lg cursor-default"
                       disabled
                     >
-                      <span className="flex items-center justify-center gap-2">
-                        <span>✅</span>
-                        <span>Entry Saved</span>
+                      <span className="flex items-center justify-center gap-2.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                          <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+                        </svg>
+                        <span>Entry Saved Successfully</span>
                       </span>
                     </button>
                   ) : (
                     <button
-                      className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg text-sm sm:text-base"
+                      className="w-full bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:via-purple-700 hover:to-pink-600 text-white px-6 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl font-bold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] text-base sm:text-lg"
                       onClick={() => handleSaveEntry(entry.id)}
                       disabled={entry.entryLoading || entry.reflectionLoading || clearLoading}
                     >
                       {entry.entryLoading || entry.reflectionLoading ? (
-                        <span className="flex items-center justify-center">
-                          <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                          <span className="text-xs sm:text-sm">{entry.reflectionLoading ? "Generating reflection..." : "Saving..."}</span>
+                        <span className="flex items-center justify-center gap-3">
+                          <div className="w-5 h-5 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <span>{entry.reflectionLoading ? "Generating AI insights..." : "Saving entry..."}</span>
                         </span>
                       ) : (
-                        "Save Entry"
+                        <span className="flex items-center justify-center gap-2.5">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+                            <path d="M17 21v-8H7v8M7 3v5h8" />
+                          </svg>
+                          <span>Save Entry & Get AI Insights</span>
+                        </span>
                       )}
                     </button>
                   )}
@@ -1078,12 +1234,15 @@ export default function JournalPage() {
 
             {/* Add Entry Button */}
             {entries.length < 3 && (
-              <div className="flex justify-center mt-4">
+              <div className="flex justify-center mt-6 sm:mt-8">
                 <button
                   onClick={handleAddEntry}
-                  className="px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-400 to-purple-500 hover:from-indigo-500 hover:to-purple-600 text-white text-sm sm:text-base font-semibold rounded-lg sm:rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="group px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-indigo-400 via-purple-500 to-pink-500 hover:from-indigo-500 hover:via-purple-600 hover:to-pink-600 text-white text-sm sm:text-base font-bold rounded-xl sm:rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 active:scale-100 flex items-center gap-2.5"
                 >
-                  ➕ Add Another Entry ({entries.length}/3)
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  <span>Add Another Entry ({entries.length}/3)</span>
                 </button>
               </div>
             )}

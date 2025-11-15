@@ -166,7 +166,7 @@ export default function LoginPage() {
           <div className="absolute -top-10 -left-10 w-40 h-40 bg-white/30 rounded-full blur-3xl animate-pulse" />
           <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-white/20 rounded-full blur-3xl animate-pulse" />
         </div>
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between relative">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between relative z-10">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center shadow-inner">
               <span className="text-xl">📝</span>
@@ -177,12 +177,16 @@ export default function LoginPage() {
           </div>
           <button
             onClick={() => router.push("/")}
-            className="text-white/90 hover:text-white text-sm font-medium transition-colors"
+            className="text-white/90 hover:text-white hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-white/20 hover:border-white/40 relative z-20"
           >
-            ← Back to Home
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+              <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
+              <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
+            </svg>
+            Back to Home
           </button>
         </div>
-        <div className="absolute -bottom-[1px] left-0 right-0" aria-hidden>
+        <div className="absolute -bottom-[1px] left-0 right-0 z-0" aria-hidden>
           <svg viewBox="0 0 1440 80" xmlns="http://www.w3.org/2000/svg" className="w-full h-12 fill-white/70">
             <path d="M0,64 C240,16 480,16 720,48 C960,80 1200,80 1440,48 L1440,80 L0,80 Z"></path>
           </svg>
