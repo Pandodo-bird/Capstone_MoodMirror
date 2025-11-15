@@ -314,6 +314,21 @@ export default function CalendarPage() {
   const weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay();
 
+  // Map mood to dot color
+  const getDotColor = (mood: string) => {
+    const moodInfo = moodConfig[mood as keyof typeof moodConfig];
+    if (!moodInfo) return "bg-gray-400";
+    
+    // Map mood colors to solid dot colors
+    if (mood === "Sad/Down") return "bg-blue-500";
+    if (mood === "Stressed/Overwhelmed") return "bg-red-500";
+    if (mood === "Anxious/Nervous") return "bg-orange-500";
+    if (mood === "Tired/Drained") return "bg-gray-500";
+    if (mood === "Happy / Excited / In Love") return "bg-yellow-500";
+    if (mood === "Grateful / Content / Peaceful") return "bg-green-500";
+    return "bg-gray-400";
+  };
+
   if (!user) return null;
 
   return (
@@ -490,40 +505,8 @@ export default function CalendarPage() {
 </div>
 
 
-          {/* Calendar Grid */}
-          <div className="p-6">
-            {/* Mood Legend */}
-            <div className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="text-xs font-semibold text-gray-700 mb-2 text-center tracking-wide">Mood Legend</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                {Object.entries(moodConfig).map(([mood, config]) => (
-                  <div key={mood} className={`flex items-center px-2 py-1.5 rounded-lg ${config.bgColor} ${config.borderColor} border shadow-sm`}>
-                    <span className="text-sm mr-1.5">{config.icon}</span>
-                    <span className={`text-xs font-medium ${config.textColor} truncate tracking-wide`}>
-                      {config.shortName}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Decorative band under legend */}
-            <div className="relative h-8 rounded-xl overflow-hidden mb-4">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-100/70 via-purple-100/70 to-pink-100/70" />
-              <div
-                className="absolute inset-0"
-                style={{
-                  backgroundImage: "radial-gradient(#a5b4fc 1px, transparent 1px), radial-gradient(#fbcfe8 1px, transparent 1px)",
-                  backgroundSize: "16px 16px, 24px 24px",
-                  backgroundPosition: "0 0, 8px 8px",
-                }}
-              />
-              <div className="absolute inset-0 opacity-60">
-                <div className="absolute -left-8 -top-6 w-20 h-20 bg-white/60 rounded-full blur-2xl" />
-                <div className="absolute -right-8 -bottom-6 w-20 h-20 bg-white/50 rounded-full blur-2xl" />
-              </div>
-            </div>
-
+            {/* Calendar Grid */}
+            <div className="p-6">
             {/* Weekday Headers */}
             <div className="grid grid-cols-7 gap-2 mb-3">
               {weekdayNames.map((day) => (
@@ -543,7 +526,9 @@ export default function CalendarPage() {
                 const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                 const dateEntries = entries?.[dateStr] || [];
                 const hasEntries = dateEntries.length > 0;
-                // Use first entry's mood for calendar display
+                // Get up to 3 entries for dots
+                const entriesForDots = dateEntries.slice(0, 3);
+                // Use first entry's mood for calendar background
                 const firstEntry = dateEntries.length > 0 ? dateEntries[0] : null;
                 const moodInfo = firstEntry?.mood ? moodConfig[firstEntry.mood as keyof typeof moodConfig] : null;
                 const isToday = dateStr === todayStr;
@@ -552,37 +537,44 @@ export default function CalendarPage() {
                 return (
                   <button
                     key={day}
-                    className={`group relative h-20 rounded-xl transition-all duration-300
-                      ${isFuture ? "opacity-50 cursor-not-allowed" : hasEntries ? "transform hover:scale-[1.04] hover:shadow-xl cursor-pointer" : "cursor-default"}
-                      ${!isFuture && hasEntries && moodInfo
-                        ? `bg-gradient-to-br ${moodInfo.bgColor} border-2 ${moodInfo.borderColor} shadow-md`
-                        : "bg-gradient-to-br from-indigo-50 to-pink-50 border-2 border-indigo-200"}
-                      ${isToday ? "ring-4 ring-indigo-400 ring-offset-2" : ""}
-                      ${!isFuture && hasEntries && moodInfo ? `hover:${moodInfo.bgColor}` : ""}`}
+                    className={`group relative h-20 rounded-xl transition-all duration-300 flex flex-col items-start justify-start p-2.5
+                      ${isFuture ? "opacity-50 cursor-not-allowed" : hasEntries ? "transform hover:scale-[1.02] hover:shadow-lg cursor-pointer" : "cursor-default hover:bg-indigo-100/50"}
+                      bg-gradient-to-br from-indigo-50 to-pink-50 border-2 border-indigo-200 hover:border-indigo-300
+                      ${isToday ? "ring-2 ring-indigo-400 ring-offset-1 bg-indigo-100/30" : ""}`}
                     onClick={() => { if (!isFuture && hasEntries) handleDayClick(day); }}
                   >
-                    <div className="absolute top-1 left-1.5">
-                      <span className={`font-bold text-sm ${
-                        !isFuture && hasEntries && moodInfo ? moodInfo.textColor : "text-gray-700"
+                    {/* Date number */}
+                    <div className="w-full flex items-start justify-between mb-1.5">
+                      <span className={`font-bold text-base leading-none ${
+                        isToday ? "text-indigo-700" : "text-gray-800"
                       }`}>
                         {day}
                       </span>
+                      {isToday && (
+                        <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+                      )}
                     </div>
-                    {!isFuture && hasEntries && moodInfo && (
-                      <div className="absolute bottom-1 left-1.5 right-1.5">
-                        <div className="bg-white/90 backdrop-blur-sm rounded-md px-1.5 py-1 flex items-center justify-center shadow ring-1 ring-white/60">
-                          <span className="text-sm mr-0.5">{moodInfo.icon}</span>
-                          <span className={`text-xs font-semibold ${moodInfo.textColor} truncate tracking-wide`}>
-                            {moodInfo.shortName}
-                          </span>
-                          {dateEntries.length > 1 && (
-                            <span className="ml-0.5 text-xs opacity-75">({dateEntries.length})</span>
-                          )}
-                        </div>
+                    
+                    {/* Emotion dots - below date number */}
+                    {hasEntries ? (
+                      <div className="w-full flex items-center gap-1.5 flex-wrap">
+                        {entriesForDots.map((entry, idx) => {
+                          const entryMood = entry.mood && !entry.flaggedWord ? entry.mood : null;
+                          const dotColor = entryMood ? getDotColor(entryMood) : "bg-gray-400";
+                          return (
+                            <div
+                              key={idx}
+                              className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/50 transition-transform duration-200 group-hover:scale-110`}
+                              title={entryMood ? moodConfig[entryMood as keyof typeof moodConfig]?.shortName : "No mood"}
+                            />
+                          );
+                        })}
+                        {dateEntries.length > 3 && (
+                          <span className="text-[9px] font-semibold text-gray-600 ml-0.5 leading-none">+{dateEntries.length - 3}</span>
+                        )}
                       </div>
-                    )}
-                    {isToday && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-500 rounded-full animate-pulse"></div>
+                    ) : (
+                      <div className="w-full h-3"></div>
                     )}
                   </button>
                 );
@@ -926,15 +918,27 @@ export default function CalendarPage() {
       {/* Preview Modal - Read Only */}
       {showModal && (
         <div className="fixed inset-0 flex items-start justify-center bg-black/60 backdrop-blur-sm z-50 p-2 sm:p-6 overflow-y-auto">
-          <div className="bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl shadow-[0_24px_60px_-15px_rgba(79,70,229,0.5)] w-full max-w-2xl max-h-[96vh] transform transition-all duration-300 scale-100 flex flex-col my-3 sm:my-10">
+          <div className="bg-white/95 backdrop-blur-xl border border-white/60 rounded-3xl shadow-[0_24px_60px_-15px_rgba(79,70,229,0.5)] w-full max-w-3xl max-h-[96vh] transform transition-all duration-300 scale-100 flex flex-col my-3 sm:my-10">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-6 rounded-t-3xl">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xl font-bold text-white">
-                  Entries for {formatDateForModal(selectedDate)}
-                </h3>
+            <div className="bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 px-6 sm:px-8 py-5 sm:py-6 rounded-t-3xl relative overflow-hidden">
+              <div className="absolute inset-0 opacity-20">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/30 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/20 rounded-full blur-3xl" />
+              </div>
+              <div className="relative z-10 flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">
+                    Journal Entries
+                  </h3>
+                  <p className="text-indigo-100 text-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                      <path fillRule="evenodd" d="M6.75 2.25A.75.75 0 017.5 3v1.5h9V3A.75.75 0 0118 3v1.5h.75a3 3 0 013 3v11.25a3 3 0 01-3 3H5.25a3 3 0 01-3-3V8.25a3 3 0 013-3H6V3a.75.75 0 01.75-.75zm13.5 9a1.5 1.5 0 00-1.5-1.5H5.25a1.5 1.5 0 00-1.5 1.5v7.5a1.5 1.5 0 001.5 1.5h13.5a1.5 1.5 0 001.5-1.5v-7.5z" clipRule="evenodd" />
+                    </svg>
+                    {formatDateForModal(selectedDate)}
+                  </p>
+                </div>
                 <button
-                  className="w-9 h-9 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white text-xl font-bold transition-all duration-200 shadow"
+                  className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white text-2xl font-bold transition-all duration-200 shadow-lg hover:scale-110"
                   onClick={() => {
                     setShowModal(false);
                     setSelectedDateEntries([]);
@@ -947,31 +951,47 @@ export default function CalendarPage() {
             </div>
 
             {/* Modal Body - Read Only */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto bg-gradient-to-br from-gray-50 to-indigo-50/30">
               {selectedDateEntries.length === 0 ? (
-                <div className="p-6 sm:p-8 text-center py-8">
-                  <p className="text-gray-500 text-sm">
+                <div className="p-8 sm:p-12 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <span className="text-3xl">📝</span>
+                  </div>
+                  <p className="text-gray-600 text-base font-medium mb-2">
                     No entries found for this date.
+                  </p>
+                  <p className="text-gray-500 text-sm">
+                    Start journaling to see your entries here!
                   </p>
                 </div>
               ) : (
                 <>
-                  {/* Tabs */}
-                  <div className="border-b border-gray-200 px-6 pt-4">
-                    <div className="flex gap-2">
-                      {selectedDateEntries.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setActiveTab(index)}
-                          className={`px-4 py-2 font-medium text-sm rounded-t-lg transition-all duration-200 ${
-                            activeTab === index
-                              ? "bg-white text-indigo-600 border-t border-l border-r border-gray-200 -mb-px"
-                              : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                          }`}
-                        >
-                          Entry {index + 1}
-                        </button>
-                      ))}
+                  {/* Tabs with Emotion Dots */}
+                  <div className="bg-white border-b border-gray-200 px-4 sm:px-6 pt-4 sticky top-0 z-10">
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {selectedDateEntries.map((entry, index) => {
+                        const entryMood = entry.mood && !entry.flaggedWord ? entry.mood : null;
+                        const moodInfo = entryMood ? moodConfig[entryMood as keyof typeof moodConfig] : null;
+                        const dotColor = entryMood ? getDotColor(entryMood) : "bg-gray-400";
+                        
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => setActiveTab(index)}
+                            className={`px-4 py-2.5 font-medium text-sm rounded-t-xl transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                              activeTab === index
+                                ? "bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-700 border-t-2 border-l-2 border-r-2 border-indigo-200 shadow-sm -mb-px"
+                                : "text-gray-600 hover:text-indigo-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <div className={`w-3 h-3 rounded-full ${dotColor} shadow-sm border border-white/50`} />
+                            <span>Entry {index + 1}</span>
+                            {moodInfo && (
+                              <span className="text-base" title={moodInfo.shortName}>{moodInfo.icon}</span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -980,58 +1000,75 @@ export default function CalendarPage() {
                     {selectedDateEntries[activeTab] && (() => {
                       const entry = selectedDateEntries[activeTab];
                       const moodInfo = entry.mood && !entry.flaggedWord ? moodConfig[entry.mood as keyof typeof moodConfig] : null;
+                      const entryMood = entry.mood && !entry.flaggedWord ? entry.mood : null;
+                      const dotColor = entryMood ? getDotColor(entryMood) : "bg-gray-400";
 
                       return (
                         <div className="space-y-6">
+                          {/* Entry Header with Dot and Mood */}
+                          <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
+                            <div className={`w-4 h-4 rounded-full ${dotColor} shadow-sm border border-white/50`} />
+                            {moodInfo && (
+                              <div className={`inline-flex items-center px-4 py-2 rounded-xl ${moodInfo.bgColor} ${moodInfo.borderColor} border-2 shadow-sm`}>
+                                <span className="text-lg mr-2">{moodInfo.icon}</span>
+                                <span className={`font-semibold text-sm ${moodInfo.textColor} tracking-wide`}>
+                                  {moodInfo.shortName}
+                                </span>
+                              </div>
+                            )}
+                            <div className="ml-auto text-xs text-gray-500">
+                              Entry {activeTab + 1} of {selectedDateEntries.length}
+                            </div>
+                          </div>
+
                           {/* Flagged Content Warning */}
                           {entry.flaggedWord && (
-                            <div className="p-4 bg-red-50 border-2 border-red-300 rounded-xl">
-                              <div className="flex items-start gap-2">
-                                <span className="text-2xl">⚠️</span>
+                            <div className="p-5 bg-red-50 border-2 border-red-300 rounded-xl shadow-sm">
+                              <div className="flex items-start gap-3">
+                                <span className="text-2xl flex-shrink-0">⚠️</span>
                                 <div className="flex-1">
+                                  <h4 className="text-red-800 font-bold text-sm mb-1">Content Flagged</h4>
                                   <p className="text-red-700 font-medium text-sm">
-                                    Flagged content: <span className="font-bold">&quot;{entry.flaggedWord}&quot;</span>
+                                    Flagged word: <span className="font-bold">&quot;{entry.flaggedWord}&quot;</span>
                                   </p>
                                 </div>
                               </div>
                             </div>
                           )}
 
-                          {/* Mood Tag - At the top */}
-                          {moodInfo && (
-                            <div className="flex justify-start">
-                              <div className={`inline-flex items-center px-4 py-2 rounded-xl ${moodInfo.bgColor} ${moodInfo.borderColor} border-2 shadow-sm`}>
-                                <span className="text-xl mr-2">{moodInfo.icon}</span>
-                                <span className={`font-semibold text-sm ${moodInfo.textColor} tracking-wide`}>
-                                  {moodInfo.shortName}
-                                </span>
+                          {/* Journal Text */}
+                          {entry.text && (
+                            <div className="bg-white rounded-xl p-5 sm:p-6 border-2 border-indigo-100 shadow-sm">
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="text-xl">💭</span>
+                                <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wide">Your Thoughts</h4>
                               </div>
+                              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+                                {entry.text}
+                              </p>
                             </div>
                           )}
 
-                          {/* Journal Text - As blockquote */}
-                          {entry.text && (
-                            <blockquote className="border-l-4 border-indigo-300 pl-4 py-2 text-gray-700 italic">
-                              <p className="whitespace-pre-wrap break-words leading-relaxed">
-                                {entry.text}
-                              </p>
-                            </blockquote>
-                          )}
-
-                          {/* AI Reflection - Combined label and text */}
+                          {/* AI Reflection */}
                           {entry.flaggedWord && entry.rawReflection && (
-                            <div className="p-4 border-2 border-red-200 rounded-lg bg-red-50">
+                            <div className="p-5 border-2 border-red-200 rounded-xl bg-red-50 shadow-sm">
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="text-xl">🤖</span>
+                                <h4 className="font-bold text-red-800 text-sm uppercase tracking-wide">AI Message</h4>
+                              </div>
                               <p className="text-red-900 leading-relaxed break-words">
-                                <span className="font-semibold">AI Message: </span>
                                 {entry.rawReflection}
                               </p>
                             </div>
                           )}
 
                           {!entry.flaggedWord && entry.polishedReflection && (
-                            <div className="p-4 border rounded-lg bg-purple-50">
+                            <div className="p-5 border-2 border-purple-200 rounded-xl bg-gradient-to-br from-purple-50 via-indigo-50 to-pink-50 shadow-sm">
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="text-xl">✨</span>
+                                <h4 className="font-bold text-purple-800 text-sm uppercase tracking-wide">AI Reflection</h4>
+                              </div>
                               <p className="text-gray-900 leading-relaxed break-words">
-                                <span className="font-semibold">AI Reflection: </span>
                                 {entry.polishedReflection}
                               </p>
                             </div>
